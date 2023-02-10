@@ -1,0 +1,22 @@
+site_name: pystac-user
+repo_url: https://github.com/WolodjaZ/jax-vqgan
+
+theme:
+  name: "material"
+
+plugins:
+  - search
+  # - mike
+  - markdown-exec
+  - mkdocstrings
+
+nav:
+  - Welcome to Docs 👋: index.md
+  - Changelog ⏳: changelog.md
+
+# extra:
+#   version:
+#     provider: mike
+
+watch:
+  - src  # reload docs for any file changes

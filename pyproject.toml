@@ -1,0 +1,125 @@
+[build-system]
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
+
+[project]
+name = "pystac-user"
+version = "0.1.0"
+description = "Python user package for working with STAC"
+authors = [
+    {name = "Vladimir Zaigrajew", email = "vladimirzaigrajew@gmail.com"},
+]
+dependencies = [
+    "pystac>=1.6.1",
+    "requests>=2.28.2",
+]
+requires-python = ">=3.8"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.urls]
+Repository = "https://github.com/WolodjaZ/pystac-user"
+#Documentation = "https://pdm.fming.dev"
+#Changelog = "https://pdm.fming.dev/latest/dev/changelog/"
+
+[project.optional-dependencies]
+[tool.pdm.scripts]
+changelog = "semantic-release changelog"
+version = "semantic-release print-version"
+test = "pytest"
+tox = "tox"
+doc = {shell = "mkdocs serve", help = "Start the dev server for doc preview"}
+lint = "pre-commit run --all-files"
+clean = {shell = """find . -type f -name '*.DS_Store' -ls -delete &&
+    find . | grep -E '.pytest_cache' | xargs rm -rf &&
+    find . | grep -E '.ipynb_checkpoints' | xargs rm -rf &&
+    find . | grep -E '.trash' | xargs rm -rf &&
+    find . | grep -E '.coverage' | xargs rm -rf &&
+    find . | grep -E '.mypy_cache' | xargs rm -rf &&
+    find . -type f -name '*.py[co]' -delete &&
+    find . -type d -name '__pycache__' -delete &&
+    find . -type d -name '.tox' -delete
+"""}
+
+[tool.pdm.build]
+excludes = ["./**/.git"]
+package-dir = "src"
+includes = ["src/pystac_user"]
+source-includes = ["tests", "CHANGELOG.md", "LICENSE", "README.md"]
+# editables backend doesn't work well with namespace packages
+editable-backend = "path"
+
+[tool.semantic_release]
+version_variable = "pyproject.toml:version" # version location
+branch = "main"                             # branch to make releases of
+changelog_file = "CHANGELOG.md"             # changelog file
+build_command = "pdm build"                 # build dists
+dist_path = "dist/"                         # where to put dists
+upload_to_release = true                    # auto-create GitHub release
+upload_to_pypi = false                      # don't auto-upload to PyPI
+remove_dist = false                         # don't remove dists
+patch_without_tag = true                    # patch release by default
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "python-semantic-release>=7.33.1",
+    "tox-pdm>=0.6.1",
+]
+test = [
+    "pytest>=7.2.1",
+    "pytest-cov>=4.0.0",
+    "pytest-vcr>=1.0.2",
+    "pytest-mock>=3.10.0",
+]
+doc = [
+    "mkdocs>=1.4.2",
+    "mkdocs-material>=9.0.12",
+    "mkdocstrings>=0.20.0",
+    "mkdocstrings-python>=0.8.3",
+    "markdown-exec>=1.2.0",
+]
+
+[tool.black]
+line-length = 88
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | tests/fixtures
+)/
+'''
+
+[tool.isort]
+profile = "black"
+atomic = true
+skip_glob = ["*/setup.py"]
+filter_files = true
+known_first_party = ["pystac_user"]
+known_third_party = [
+    "platformdirs",
+    "packaging",
+    "pytest",
+    "findpython",
+    "tomlkit",
+    "unearth",
+    "requests",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore::DeprecationWarning"
+]
+markers = [
+    "vcr: records network activity"
+]
+testpaths = [
+    "tests/",
+]

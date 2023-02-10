@@ -6,6 +6,9 @@ on:
     - main
   pull_request:
 
+env:
+  SKIP: pdm-export,clean
+
 jobs:
   build:
     name: build
@@ -37,13 +40,14 @@ jobs:
           version: ${{ matrix.pdm-version }}
       -  name: Install dependencies
          run: |
-          pdm sync -d -G test
+          pdm sync -dG dev &&
+          pdm sync -dG test
       -  name: Run pre-commit
          run: |
-          pdm run pre-commit run --all-files
+          pdm run ci-github
       - name: Run pytest
         run: |
-          pdm run pytest --cov=pystac_user --cov-config=setup.cfg --cov-report=xml tests
+          pdm run pytest --cov=pystac_user --cov-config=setup.cfg --cov-report=xml test
       - name: Upload All coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

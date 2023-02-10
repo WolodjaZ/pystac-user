@@ -18,6 +18,9 @@ jobs:
           python-version: "3.x"
           architecture: x64
           version: 2.4.5
+      - name: Install dependencies
+        run: |
+          pdm install -dG dev
       - name: Use Python Semantic Release to prepare release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

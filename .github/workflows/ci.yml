@@ -38,6 +38,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.arch }}
           version: ${{ matrix.pdm-version }}
+          cache: true
       -  name: Install dependencies
          run: |
           pdm sync -dG dev &&

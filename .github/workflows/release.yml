@@ -18,6 +18,7 @@ jobs:
           python-version: "3.x"
           architecture: x64
           version: 2.4.5
+          cache: true
       - name: Install dependencies
         run: |
           pdm install -dG dev

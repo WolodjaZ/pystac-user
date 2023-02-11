@@ -20,21 +20,16 @@ jobs:
       - name: Setup PDM
         uses: pdm-project/setup-pdm@v3
         with:
-          python-version: 3.9
-          architecture: "x64"
-      - name: Get dosc requirements
-        run: |
-          pdm export -G doc -o requirements-doc.txt --without-hashes
-      - uses: actions/setup-python@v3
-        with:
-          python-version: 3.9
-          architecture: "x64"
+          python-version: "3.8"
+          architecture: x64
+          version: 2.4.5
+          cache: true
       - name: Install dependencies
         run: |
-          pip install -r requirements-doc.txt
+          pdm install -dG doc
       - name:  Get Changelog
         run: |
           cp CHANGELOG.md docs/changelog.md
       - name: Build Documentation
         run: |
-          mkdocs gh-deploy --force
+          pdm run mkdocs gh-deploy --force

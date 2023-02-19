@@ -15,6 +15,7 @@ dependencies = [
     "aiohttp>=3.8.4",
     "asyncio>=3.4.3",
     "pystac-client>=0.6.0",
+    "aiofiles>=23.1.0",
 ]
 requires-python = ">=3.8"
 readme = "README.md"

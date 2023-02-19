@@ -58,6 +58,7 @@ repos:
               - pystac
               - pytest-vcr
               - types-requests
+              - types-aiofiles
 
 -   repo: local
     hooks:

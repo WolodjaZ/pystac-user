@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
+import aiofiles
 from aiohttp import ClientResponseError, ClientSession
 from pystac import Catalog, StacIO, STACObject, link
 
@@ -85,8 +86,11 @@ class DefaultStacIO(StacIO):
         if urlparse(href).scheme == "":
             # Read local file
             # Open file
-            with open(href, encoding="utf-8") as f:
-                href_content = f.read()
+            if Path(href).is_file():
+                with open(href, encoding="utf-8") as f:
+                    href_content = f.read()
+            else:
+                raise FileNotFoundError(f"File {href} not found.")
         elif urlparse(href).scheme in ["http", "https"]:
             # Read remote file
             # Update headers and params
@@ -305,8 +309,11 @@ class AsyncStacIO(StacIO):
         if urlparse(href).scheme == "":
             # Read local file
             # Open file
-            with open(href, encoding="utf-8") as f:
-                href_content = f.read()
+            if Path(href).is_file():
+                async with aiofiles.open(href, encoding="utf-8") as f:
+                    href_content = await f.read()
+            else:
+                raise FileNotFoundError(f"File {href} not found.")
         elif urlparse(href).scheme in ["http", "https"]:
             # Read remote file
             # Update headers and params
@@ -389,8 +396,8 @@ class AsyncStacIO(StacIO):
             if not dirname.exists() and not dirname.is_dir():
                 dirname.mkdir(parents=True)
             # Open file
-            with open(href, "w", encoding="utf-8") as f:
-                f.write(txt)
+            async with aiofiles.open(href, "w", encoding="utf-8") as f:
+                await f.write(txt)
         elif urlparse(href).scheme in ["http", "https"]:
             # Write remote file
             raise NotImplementedError("Writing to remote files is not implemented")

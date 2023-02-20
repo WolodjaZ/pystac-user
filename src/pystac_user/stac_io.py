@@ -1,14 +1,15 @@
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 import aiofiles
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientSession
 from pystac import Catalog, StacIO, STACObject, link
 
 # For Stac API IO we will use pystac_client implementation for now
 from pystac_client.stac_api_io import StacApiIO
-from requests import HTTPError, Session
+from requests import Session
 
 __all__ = ["DefaultStacIO", "StacApiIO", "AsyncStacIO"]
 
@@ -52,10 +53,7 @@ class DefaultStacIO(StacIO):
             str: The text read from the source.
         """
         # Convert PathLike to str
-        # In pystac implementation they use `str(os.fspath(href)),`
-        # however I prefer to use `pathlib.Path`
-        # TODO: check if it works
-        href = str(Path(source))
+        href = os.fspath(source)
         # Get content from href
         href_content: str = self.read_text_from_href(
             href=href, args=args, kwargs=kwargs
@@ -107,10 +105,7 @@ class DefaultStacIO(StacIO):
                 r = s.get(href, headers=headers, params=params)
                 href_content = r.text
                 # Check status code
-                try:
-                    r.raise_for_status()
-                except HTTPError as e:
-                    raise Exception(f"Could not read uri {href}") from e
+                r.raise_for_status()
                 return href_content
 
             session = kwargs.get("session", None)
@@ -118,7 +113,10 @@ class DefaultStacIO(StacIO):
             if session is None:
                 # Create a new session
                 with Session() as s:
-                    href_content = make_request(s)
+                    try:
+                        href_content = make_request(s)
+                    except Exception as e:
+                        raise Exception(f"Could not read uri {href}") from e
             else:
                 # Use provided session
                 href_content = make_request(session)
@@ -140,7 +138,7 @@ class DefaultStacIO(StacIO):
             txt (str): The text to write to the destination.
         """
         # Convert PathLike to str
-        href = str(Path(dest))
+        href = os.fspath(dest)
         # Write content to href
         self.write_text_to_href(href=href, txt=txt)
 
@@ -276,7 +274,7 @@ class AsyncStacIO(StacIO):
             str: The text read from the source.
         """
         # Convert PathLike to str
-        href = str(Path(source))
+        href = os.fspath(source)
         # Get content from href
         href_content: str = await self.read_text_from_href(
             href=href, args=args, kwargs=kwargs
@@ -332,10 +330,7 @@ class AsyncStacIO(StacIO):
                     href_content = await response.text(encoding="utf-8")
                     # Check if response is valid. If http status code is not 200,
                     # raise an exception
-                    try:
-                        response.raise_for_status()
-                    except ClientResponseError as e:
-                        raise Exception(f"Could not read uri {href}") from e
+                    response.raise_for_status()
                 return href_content
 
             session = kwargs.get("session", None)
@@ -343,7 +338,10 @@ class AsyncStacIO(StacIO):
             if session is None:
                 # Create session
                 async with ClientSession() as s:
-                    href_content = await make_request(s)
+                    try:
+                        href_content = await make_request(s)
+                    except Exception as e:
+                        raise Exception(f"Could not read uri {href}") from e
             else:
                 # Use provided session
                 href_content = await make_request(session)
@@ -367,7 +365,7 @@ class AsyncStacIO(StacIO):
             txt (str): The text to write to the destination.
         """
         # Convert PathLike to str
-        href = str(Path(dest))
+        href = os.fspath(dest)
         # Write content to href
         await self.write_text_to_href(href=href, txt=txt)
 
@@ -487,6 +485,6 @@ class AsyncStacIO(StacIO):
                 :meth:`StacIO.read_text`.
         """
         # Dump json to text
-        txt = self.json_dumps(json_dict, args=args, kwargs=kwargs)
+        txt = self.json_dumps(json_dict, *args, **kwargs)
         # Write text to dest
         await self.write_text(dest=dest, txt=txt)

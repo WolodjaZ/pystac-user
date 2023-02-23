@@ -48,7 +48,7 @@ jobs:
           pdm run ci-github
       - name: Run pytest
         run: |
-          pdm run pytest --cov=pystac_user --cov-config=setup.cfg --cov-report=xml test
+          pdm run pytest --cov=pystac_user --cov-config=setup.cfg --cov-report=xml tests
       - name: Upload All coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

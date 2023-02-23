@@ -1,0 +1,194 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.28.2
+    method: GET
+    uri: https://storage.googleapis.com/cfo-public/vegetation/collection.json
+  response:
+    body:
+      string: "{\n  \"type\": \"Collection\",\n  \"id\": \"vegetation\",\n  \"stac_version\":
+        \"1.0.0\",\n  \"description\": \"Patterns of forest structure and forest fuels
+        that drive wildfire behavior. Read more at https://the.forestobservatory.com/data\",\n
+        \ \"links\": [\n    {\n      \"rel\": \"root\",\n      \"href\": \"https://storage.googleapis.com/cfo-public/catalog.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBaseHeight-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBaseHeight-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBaseHeight-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBaseHeight-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBaseHeight-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBulkDensity-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBulkDensity-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBulkDensity-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBulkDensity-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyBulkDensity-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2016-Fall-00003m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2020-Spring-00003m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyCover-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2016-Fall-00003m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2020-Spring-00003m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyHeight-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyLayerCount-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyLayerCount-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyLayerCount-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyLayerCount-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-CanopyLayerCount-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2016-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2017-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2018-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2019-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2020-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-DryVegetation-2021-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2016-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2017-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2018-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2019-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2020-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-GreenVegetation-2021-Spring-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-LadderFuelDensity-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-LadderFuelDensity-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-LadderFuelDensity-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-LadderFuelDensity-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-LadderFuelDensity-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-SurfaceFuels-2016-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-SurfaceFuels-2017-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-SurfaceFuels-2018-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-SurfaceFuels-2019-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"item\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/California-Vegetation-SurfaceFuels-2020-Summer-00010m.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"license\",\n
+        \     \"href\": \"https://forestobservatory.com/legal.html\"\n    },\n    {\n
+        \     \"rel\": \"parent\",\n      \"href\": \"https://storage.googleapis.com/cfo-public/catalog.json\",\n
+        \     \"type\": \"application/json\"\n    },\n    {\n      \"rel\": \"self\",\n
+        \     \"href\": \"https://storage.googleapis.com/cfo-public/vegetation/collection.json\",\n
+        \     \"type\": \"application/json\"\n    }\n  ],\n  \"stac_extensions\":
+        [],\n  \"title\": \"CFO forest structure and fuels data\",\n  \"extent\":
+        {\n    \"spatial\": {\n      \"bbox\": [\n        [\n          -124.41093405223192,\n
+        \         32.53343961618115,\n          -114.12969535404741,\n          41.99925769689654\n
+        \       ]\n      ]\n    },\n    \"temporal\": {\n      \"interval\": [\n        [\n
+        \         \"2016-05-01T17:00:00Z\",\n          \"2021-05-01T17:00:00Z\"\n
+        \       ]\n      ]\n    }\n  },\n  \"license\": \"proprietary\",\n  \"keywords\":
+        [\n    \"vegetation\",\n    \"fuels\",\n    \"forest\",\n    \"california\",\n
+        \   \"ecology\",\n    \"conservation\",\n    \"salo\",\n    \"forest observatory\"\n
+        \ ],\n  \"providers\": [\n    {\n      \"name\": \"Salo Sciences\",\n      \"description\":
+        \"Salo Sciences is a conservation technology company. We use satellites and
+        science to map ecosystems at high resolution and guide investments in nature.\",\n
+        \     \"roles\": [\n        \"licensor\",\n        \"processor\",\n        \"host\"\n
+        \     ],\n      \"url\": \"https://salo.ai\"\n    },\n    {\n      \"name\":
+        \"Planet Labs\",\n      \"roles\": [\n        \"producer\"\n      ],\n      \"url\":
+        \"https://planet.com\"\n    },\n    {\n      \"name\": \"ESA\",\n      \"roles\":
+        [\n        \"producer\"\n      ],\n      \"url\": \"https://earth.esa.int/web/guest/home\"\n
+        \   }\n  ]\n}"
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Access-Control-Expose-Headers:
+      - Content-Type
+      Age:
+      - '278'
+      Alt-Svc:
+      - h3=":443"; ma=2592000,h3-29=":443"; ma=2592000,h3-Q050=":443"; ma=2592000,h3-Q046=":443";
+        ma=2592000,h3-Q043=":443"; ma=2592000,quic=":443"; ma=2592000; v="46,43"
+      Cache-Control:
+      - public, max-age=3600
+      Content-Language:
+      - en
+      Content-Length:
+      - '12076'
+      Content-Type:
+      - application/json
+      Date:
+      - Thu, 23 Feb 2023 13:14:30 GMT
+      ETag:
+      - '"0c05a40326ab7e101d8fb091f729a6ec"'
+      Expires:
+      - Thu, 23 Feb 2023 14:14:30 GMT
+      Last-Modified:
+      - Tue, 28 Sep 2021 00:56:07 GMT
+      Server:
+      - UploadServer
+      X-GUploader-UploadID:
+      - ADPycdv8a55xesy6FbUJ5c7O7HQM7ri3Sxv8XQe61a_RRhSPPdNC5ZwfqaSNpizemX42D5xcKlZpFYoj0y2OSJoE-ROG
+      x-goog-generation:
+      - '1632790567707873'
+      x-goog-hash:
+      - crc32c=YcUEjw==
+      - md5=DAWkAyarfhAdj7CR9ymm7A==
+      x-goog-metageneration:
+      - '1'
+      x-goog-storage-class:
+      - STANDARD
+      x-goog-stored-content-encoding:
+      - identity
+      x-goog-stored-content-length:
+      - '12076'
+    status:
+      code: 200
+      message: OK
+version: 1

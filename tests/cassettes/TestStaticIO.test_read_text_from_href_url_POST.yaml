@@ -1,0 +1,43 @@
+interactions:
+- request:
+    body: '{"collections": ["string"], "ids": ["string"], "intersects": {"type": "Point",
+      "coordinates": [0, 0]}, "limit": 5}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '114'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.28.2
+    method: POST
+    uri: https://planetarycomputer.microsoft.com/api/stac/v1/search
+  response:
+    body:
+      string: '{"type":"FeatureCollection","features":[],"links":[{"rel":"root","type":"application/json","href":"https://planetarycomputer.microsoft.com/api/stac/v1/"},{"rel":"self","type":"application/json","href":"https://planetarycomputer.microsoft.com/api/stac/v1/search"}]}'
+    headers:
+      Access-Control-Allow-Credentials:
+      - 'true'
+      Access-Control-Allow-Origin:
+      - '*'
+      Content-Length:
+      - '264'
+      Content-Type:
+      - application/geo+json
+      Date:
+      - Thu, 23 Feb 2023 13:19:07 GMT
+      Strict-Transport-Security:
+      - max-age=15724800; includeSubDomains
+      X-Azure-Ref:
+      - 0y2f3YwAAAACpiyonQuAuRK8Q46WYCzOLRlJBMjMxMDUwNDE3MDM5ADkyN2FiZmE2LTE5ZjYtNGFmMS1hMDlkLWM5NTlkOWExZTY0NA==
+      X-Cache:
+      - CONFIG_NOCACHE
+    status:
+      code: 200
+      message: OK
+version: 1

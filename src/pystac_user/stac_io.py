@@ -6,12 +6,9 @@ from urllib.parse import urlparse
 import aiofiles
 from aiohttp import ClientSession
 from pystac import Catalog, StacIO, STACObject, link
-
-# For Stac API IO we will use pystac_client implementation for now
-from pystac_client.stac_api_io import StacApiIO
 from requests import Session
 
-__all__ = ["DefaultStacIO", "StacApiIO", "AsyncStacIO"]
+__all__ = ["DefaultStacIO", "AsyncStacIO"]
 
 
 class DefaultStacIO(StacIO):
@@ -32,8 +29,8 @@ class DefaultStacIO(StacIO):
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.headers = headers or {}
-        self.params = params or {}
+        self.headers = headers or None
+        self.params = params or None
 
     def read_text(self, source: link.HREF, *args: Any, **kwargs: Any) -> str:
         """
@@ -45,9 +42,9 @@ class DefaultStacIO(StacIO):
             source (link.HREF): The source to read from.
             args: Additional arguments to pass to `read_text_from_href`.
             kwargs: Additional arguments to pass to `read_text_from_href`.
-                For example: `headers`, `params`, `session`. `headers` and `params`
-                are used only if `source` is a remote file for the request.
-                The type of `session` is `requests.Session`.
+                For example: `headers`, `session`. `headers` is used only if
+                `source` is a remote file for the request. The type of `session`
+                is `requests.Session`.
 
         Returns:
             str: The text read from the source.
@@ -60,6 +57,41 @@ class DefaultStacIO(StacIO):
         )
         return href_content
 
+    def _request(
+        self,
+        session: Session,
+        method: str,
+        href: str,
+        headers: Optional[Dict[str, str]],
+        params: Optional[Dict[str, str]],
+    ) -> str:
+        """Makes a request to `href` using `s` session.
+
+        Args:
+            session (Session): `request.Session` to use.
+            method (str): HTTP method to use. Either "GET" or "POST".
+            href (str): The URL of the file to open.
+            headers (Optional[Dict[str,str]]):
+                A dictionary of additional headers to use in the request.
+            params (Optional[Dict[str,str]]):
+                A dictionary of additional parameters to use in the request.
+                For `GET` requests, the parameters are encoded into the URL.
+                For `POST` requests, the parameters are encoded into the body.
+        """
+        # Send response
+        if method == "GET":
+            response = session.get(href, headers=headers, params=params)
+        else:
+            response = session.post(href, headers=headers, json=params)
+
+        # Set encoding
+        response.encoding = "utf-8"
+        # Read response
+        href_content = response.text
+        # Raise error if status code is not 200
+        response.raise_for_status()
+        return href_content
+
     def read_text_from_href(self, href: str, *_: Any, **kwargs: Any) -> str:
         """
         Reads file as a UTF-8 string.
@@ -68,45 +100,43 @@ class DefaultStacIO(StacIO):
         Else, if `href` is a remote file, it is read using an `aiohttp` request.
 
         Raises:
-            ValueError: Invalid scheme for href.
+            ValueError: Path incorrect or file not found: `href`.
 
         Args:
             href : The URI of the file to open.
-            kwargs: Additional arguments that may contain:
-                `headers`, `params`, `session`. `headers` and `params`
-                are used only if `source` is a remote file for the request.
-                The type of `session` is `requests.Session`.
+            kwargs: Additional arguments to pass to `read_text_from_href`.
+                For example: `headers`, `session`. `headers` is used only if
+                `source` is a remote file for the request. The type of `session`
+                is `requests.Session`.
 
         Returns:
             str: The text read from the file.
         """
         # Check if href is a url or a local file
-        if urlparse(href).scheme == "":
+        if not urlparse(href).scheme in ["http", "https"]:
             # Read local file
             # Open file
             if Path(href).is_file():
                 with open(href, encoding="utf-8") as f:
                     href_content = f.read()
             else:
-                raise FileNotFoundError(f"File {href} not found.")
-        elif urlparse(href).scheme in ["http", "https"]:
+                raise ValueError(f"Path incorrect or file not found: {href}.")
+        else:
             # Read remote file
             # Update headers and params
             headers = kwargs.get("headers", None)
             params = kwargs.get("params", None)
-            if headers is not None:
+            if headers is None:
                 headers = self.headers
             if params is None:
-                params = self.params
+                params = self.headers
 
-            def make_request(s: Session) -> str:
-                """Makes a request to `href` using `s` session."""
-                # Read response
-                r = s.get(href, headers=headers, params=params)
-                href_content = r.text
-                # Check status code
-                r.raise_for_status()
-                return href_content
+            # Get method
+            method = kwargs.get("method", "GET")
+            if method not in ["GET", "POST"]:
+                raise ValueError(
+                    f"Invalid method: {method} we only support GET and POST"
+                )
 
             session = kwargs.get("session", None)
             # Make request
@@ -114,16 +144,12 @@ class DefaultStacIO(StacIO):
                 # Create a new session
                 with Session() as s:
                     try:
-                        href_content = make_request(s)
+                        href_content = self._request(s, method, href, headers, params)
                     except Exception as e:
                         raise Exception(f"Could not read uri {href}") from e
             else:
                 # Use provided session
-                href_content = make_request(session)
-        else:
-            raise ValueError(
-                f"Invalid scheme: {urlparse(href).scheme} for href: {href}"
-            )
+                href_content = self._request(session, method, href, headers, params)
 
         return href_content
 
@@ -150,14 +176,13 @@ class DefaultStacIO(StacIO):
 
         Raises:
             NotImplementedError: Writing to remote files is not implemented.
-            ValueError: Invalid scheme for href.
 
         Args:
             href (str): The URI of the file to open.
             txt (str): The text to write to the destination.
         """
         # Check if href is a url or a local file
-        if urlparse(href).scheme == "":
+        if not urlparse(href).scheme in ["http", "https"]:
             # Write local file
             # Get directory name
             dirname = Path(href).parent
@@ -165,15 +190,11 @@ class DefaultStacIO(StacIO):
             if not dirname.exists() and not dirname.is_dir():
                 dirname.mkdir(parents=True)
             # Open file
-            with open(href, "w", encoding="utf-8") as f:
-                f.write(txt)
-        elif urlparse(href).scheme in ["http", "https"]:
+            with open(href, "w", encoding="utf-8") as file:
+                file.write(txt)
+        else:
             # Write remote file
             raise NotImplementedError("Writing to remote files is not implemented")
-        else:
-            raise ValueError(
-                f"Invalid scheme: {urlparse(href).scheme} for href: {href}"
-            )
 
     def read_json(self, source: link.HREF, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """
@@ -184,18 +205,18 @@ class DefaultStacIO(StacIO):
             *args : Additional positional arguments to be passed to
                 :meth:`StacIO.read_text`.
             **kwargs : Additional keyword arguments to be passed to
-                :meth:`StacIO.read_text`. May contain `headers`, `params`, `session`.
-                `headers` and `params` are used only if `source` is a remote file
+                :meth:`StacIO.read_text`. May contain `headers`, `session`.
+                `headers` is used only if `source` is a remote file
                 for the request. The type of `session` is `requests.Session`.
         Returns:
             Dict[str, Any]: A dict representation of the JSON contained in the file
             at the given source.
         """
         # Read text from source
-        txt = self.read_text(source=source, args=args, kwargs=kwargs)
+        text = self.read_text(source=source, args=args, kwargs=kwargs)
         # Load json
-        json_dict = self.json_loads(txt)
-        return json_dict
+        json_text = self.json_loads(text)
+        return json_text
 
     def read_stac_object(
         self,
@@ -215,18 +236,18 @@ class DefaultStacIO(StacIO):
             *args : Additional positional arguments to be passed to
                 :meth:`StacIO.read_text`.
             **kwargs : Additional keyword arguments to be passed to
-                :meth:`StacIO.read_text`. May contain `headers`, `params`, `session`.
-                `headers` and `params` are used only if `source` is a remote file
+                :meth:`StacIO.read_text`. May contain `headers`, `session`.
+                `headers` is used only if `source` is a remote file
                 for the request. The type of `session` is `requests.Session`.
         Returns:
             STACObject: The deserialized STACObject from the serialized JSON
             contained in the file at the given uri.
         """
         # Read json from source
-        d = self.read_json(source=source, args=args, kwargs=kwargs)
+        json_text = self.read_json(source=source, args=args, kwargs=kwargs)
         # Create STAC object
         stac_object = self.stac_object_from_dict(
-            d,
+            json_text,
             href=source,
             root=root,
             preserve_dict=True,  # TODO check if preserve_dict is needed
@@ -243,7 +264,7 @@ class AsyncStacIO(StacIO):
             A dictionary of additional headers to use in all requests.
             Defaults to None.
         params (Optional[Dict[str, str]], optional):
-            A dictionary of additional parameters to use in all requests.
+            A dictionary of additional query parameters to use in all requests.
             Defaults to None.
     """
 
@@ -252,8 +273,8 @@ class AsyncStacIO(StacIO):
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.headers = headers or {}
-        self.params = params or {}
+        self.headers = headers or None
+        self.params = params or None
 
     async def read_text(  # type: ignore[override]
         self, source: link.HREF, *args: Any, **kwargs: Any
@@ -267,9 +288,9 @@ class AsyncStacIO(StacIO):
             source (link.HREF): The source to read from.
             args: Additional arguments to pass to `read_text_from_href`.
             kwargs: Additional arguments to pass to `read_text_from_href`.
-                For example: `headers`, `params`, `session`. `headers` and `params`
-                are used only if `source` is a remote file for the request.
-                The type of `session` is `aiohttp.ClientSession`.
+                For example: `headers`, `session`. `headers` is used only if `source`
+                is a remote file for the request. The type of `session` is
+                `aiohttp.ClientSession`.
         Returns:
             str: The text read from the source.
         """
@@ -279,6 +300,43 @@ class AsyncStacIO(StacIO):
         href_content: str = await self.read_text_from_href(
             href=href, args=args, kwargs=kwargs
         )
+        return href_content
+
+    async def _request(
+        self,
+        session: ClientSession,
+        method: str,
+        href: str,
+        headers: Optional[Dict[str, str]],
+        params: Optional[Dict[str, str]],
+    ) -> str:
+        """Makes a request to `href` using `s` session.
+
+        Args:
+            session (ClientSession): `aiohttp.ClientSession` to use for the request.
+            method (str): HTTP method to use. Either "GET" or "POST".
+            href (str): The URL of the file to open.
+            headers (Optional[Dict[str,str]]):
+                A dictionary of additional headers to use in the request.
+            params (Optional[Dict[str,str]]):
+                A dictionary of additional parameters to use in the request.
+                For `GET` requests, the parameters are encoded into the URL.
+                For `POST` requests, the parameters are encoded into the body.
+        """
+        # Send response
+        if method == "GET":
+            async with session.get(href, headers=headers, params=params) as response:
+                # Read response
+                href_content = await response.text(encoding="utf-8")
+                # Raise error if status code is not 200
+                response.raise_for_status()
+        else:
+            async with session.post(href, headers=headers, json=params) as response:
+                # Read response
+                href_content = await response.text(encoding="utf-8")
+                # Raise error if status code is not 200
+                response.raise_for_status()
+
         return href_content
 
     async def read_text_from_href(  # type: ignore[override]
@@ -291,47 +349,43 @@ class AsyncStacIO(StacIO):
         Else, if `href` is a remote file, it is read using an `aiohttp` request.
 
         Raises:
-            ValueError: Invalid scheme for href.
+            ValueError: Path incorrect or file not found: `href`.
 
         Args:
             href : The URI of the file to open.
             kwargs: Additional arguments to pass to `read_text_from_href`.
-                For example: `headers`, `params`, `session`. `headers` and `params`
-                are used only if `source` is a remote file for the request.
+                For example: `headers`, `session`. `headers` is used only if
+                `source` is a remote file for the request.
                 The type of `session` is `aiohttp.ClientSession`.
 
         Returns:
             str: The text read from the file.
         """
         # Check if href is a url or a local file
-        if urlparse(href).scheme == "":
+        if not urlparse(href).scheme in ["http", "https"]:
             # Read local file
             # Open file
             if Path(href).is_file():
                 async with aiofiles.open(href, encoding="utf-8") as f:
                     href_content = await f.read()
             else:
-                raise FileNotFoundError(f"File {href} not found.")
-        elif urlparse(href).scheme in ["http", "https"]:
+                raise ValueError(f"Path incorrect or file not found: {href}.")
+        else:
             # Read remote file
             # Update headers and params
             headers = kwargs.get("headers", None)
             params = kwargs.get("params", None)
-
             if headers is None:
                 headers = self.headers
             if params is None:
                 params = self.params
 
-            async def make_request(s: ClientSession) -> str:
-                """Makes a request to `href` using `s` session."""
-                async with s.get(href, headers=headers, params=params) as response:
-                    # Read response
-                    href_content = await response.text(encoding="utf-8")
-                    # Check if response is valid. If http status code is not 200,
-                    # raise an exception
-                    response.raise_for_status()
-                return href_content
+            # Get method
+            method = kwargs.get("method", "GET")
+            if method not in ["GET", "POST"]:
+                raise ValueError(
+                    f"Invalid method: {method} we only support GET and POST"
+                )
 
             session = kwargs.get("session", None)
             # Make request
@@ -339,16 +393,16 @@ class AsyncStacIO(StacIO):
                 # Create session
                 async with ClientSession() as s:
                     try:
-                        href_content = await make_request(s)
+                        href_content = await self._request(
+                            s, method, href, headers, params
+                        )
                     except Exception as e:
                         raise Exception(f"Could not read uri {href}") from e
             else:
                 # Use provided session
-                href_content = await make_request(session)
-        else:
-            raise ValueError(
-                f"Invalid scheme: {urlparse(href).scheme} for href: {href}"
-            )
+                href_content = await self._request(
+                    session, method, href, headers, params
+                )
 
         return href_content
 
@@ -379,14 +433,13 @@ class AsyncStacIO(StacIO):
 
         Raises:
             NotImplementedError: Writing to remote files is not implemented.
-            ValueError: Invalid scheme for href.
 
         Args:
             href (str): The URI of the file to open.
             txt (str): The text to write to the destination.
         """
         # Check if href is a url or a local file
-        if urlparse(href).scheme == "":
+        if not urlparse(href).scheme in ["http", "https"]:
             # Write local file
             # Get directory name
             dirname = Path(href).parent
@@ -394,15 +447,11 @@ class AsyncStacIO(StacIO):
             if not dirname.exists() and not dirname.is_dir():
                 dirname.mkdir(parents=True)
             # Open file
-            async with aiofiles.open(href, "w", encoding="utf-8") as f:
-                await f.write(txt)
-        elif urlparse(href).scheme in ["http", "https"]:
+            async with aiofiles.open(href, "w", encoding="utf-8") as file:
+                await file.write(txt)
+        else:
             # Write remote file
             raise NotImplementedError("Writing to remote files is not implemented")
-        else:
-            raise ValueError(
-                f"Invalid scheme: {urlparse(href).scheme} for href: {href}"
-            )
 
     async def read_json(  # type: ignore[override]
         self,
@@ -418,18 +467,18 @@ class AsyncStacIO(StacIO):
             *args : Additional positional arguments to be passed to
                 :meth:`StacIO.read_text`.
             **kwargs : Additional keyword arguments to be passed to
-                :meth:`StacIO.read_text`. May contain `headers`, `params`, `session`.
-                `headers` and `params` are used only if `source` is a remote file
+                :meth:`StacIO.read_text`. May contain `headers`, `session`.
+                `headers` is used only if `source` is a remote file
                 for the request. The type of `session` is `aiohttp.ClientSession`.
         Returns:
             Dict[str, Any]: A dict representation of the JSON contained
             in the file at the given source. M
         """
         # Read text from source
-        txt = await self.read_text(source=source, args=args, kwargs=kwargs)
+        text = await self.read_text(source=source, args=args, kwargs=kwargs)
         # Load json
-        json_dict = self.json_loads(txt)
-        return json_dict
+        json_text = self.json_loads(text)
+        return json_text
 
     async def read_stac_object(  # type: ignore[override]
         self,
@@ -449,18 +498,18 @@ class AsyncStacIO(StacIO):
             *args : Additional positional arguments to be passed to
                 :meth:`StacIO.read_text`.
             **kwargs : Additional keyword arguments to be passed to
-                :meth:`StacIO.read_text`. May contain `headers`, `params`, `session`.
-                `headers` and `params` are used only if `source` is a remote file
+                :meth:`StacIO.read_text`. May contain `headers`, `session`.
+                `headers` is used only if `source` is a remote file
                 for the request. The type of `session` is `aiohttp.ClientSession`.
         Returns:
             STACObject: The deserialized STACObject from the serialized JSON
             contained in the file at the given uri.
         """
         # Read json from source
-        d = await self.read_json(source=source, args=args, kwargs=kwargs)
+        json_text = await self.read_json(source=source, args=args, kwargs=kwargs)
         # Create STAC object
         stac_object = self.stac_object_from_dict(
-            d,
+            json_text,
             href=source,
             root=root,
             preserve_dict=True,  # TODO check if preserve_dict is needed

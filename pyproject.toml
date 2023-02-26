@@ -33,7 +33,8 @@ test = "pytest --record-mode=once"
 tox = "tox"
 ci-github = {shell = "pre-commit install && pre-commit run --all-files"}
 doc = {shell = "mkdocs serve", help = "Start the dev server for doc preview"}
-lint = {shell = "pre-commit install && pre-commit run --all-files"}
+lint = {shell = """pre-commit install --hook-type commit-msg &&
+    pre-commit run --all-files"""}
 clean = {shell = """find . -type f -name '*.DS_Store' -ls -delete &&
     find . | grep -E '.pytest_cache' | xargs rm -rf &&
     find . | grep -E '.ipynb_checkpoints' | xargs rm -rf &&

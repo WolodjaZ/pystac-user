@@ -18,6 +18,6 @@ jobs:
           # The commit message"
           commit-message: "chore: Update pdm.lock"
           # The PR title
-          pr-title: "Update dependencies"
+          pr-title: "chore: Update dependencies"
           # The update strategy, can be 'reuse', 'eager' or 'all'
           update-strategy: eager

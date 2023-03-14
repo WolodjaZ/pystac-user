@@ -29,8 +29,8 @@ class DefaultStacIO(StacIO):
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.headers = headers or None
-        self.params = params or None
+        super().__init__(headers=headers)
+        self.params: Optional[Dict[str, str]] = params
 
     def read_text(self, source: link.HREF, *args: Any, **kwargs: Any) -> str:
         """
@@ -273,8 +273,8 @@ class AsyncStacIO(StacIO):
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.headers = headers or None
-        self.params = params or None
+        super().__init__(headers=headers)
+        self.params: Optional[Dict[str, str]] = params
 
     async def read_text(  # type: ignore[override]
         self, source: link.HREF, *args: Any, **kwargs: Any

@@ -56,10 +56,12 @@ repos:
             args: [src]
             pass_filenames: false
             additional_dependencies:
+              - "pydantic>=1.10.4"
               - pystac
               - pytest-vcr
               - types-requests
               - types-aiofiles
+              - types-python-dateutil
 
 -   repo: local
     hooks:

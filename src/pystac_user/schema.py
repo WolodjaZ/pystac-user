@@ -3,11 +3,9 @@ import logging
 import re
 from copy import deepcopy
 from datetime import datetime as datetime_
-from datetime import timezone
+from datetime import timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
-from dateutil.relativedelta import relativedelta
-from dateutil.tz import tzutc
 from geojson import GeoJSON
 from geojson import dumps as geojson_dumps
 from pydantic import root_validator, validator
@@ -15,6 +13,7 @@ from pydantic import root_validator, validator
 # Thought of using attrs but we need that validation of pydantic
 from pydantic.dataclasses import dataclass
 
+from pystac_user.exceptions import EmptyAttributeError
 from pystac_user.types import (
     BBox,
     CollectionsLike,
@@ -53,6 +52,20 @@ _OPERATOR_MAP: Dict[str, str] = {
     "<=": "lte",
     ">": "gt",
     ">=": "gte",
+}
+MONTH_DAYS = {
+    1: 31,
+    2: 28,
+    3: 31,
+    4: 30,
+    5: 31,
+    6: 30,
+    7: 31,
+    8: 31,
+    9: 30,
+    10: 31,
+    11: 30,
+    12: 31,
 }
 DATETIME_REGEX = re.compile(
     r"^(?P<year>\d{4})(-(?P<month>\d{2})(-(?P<day>\d{2})"
@@ -111,15 +124,6 @@ class Query:
             )
         return (op, value)
 
-    # def __post_init__(self):
-    #     # Check if operator is valid
-    #     for i in range(len(self.operator)):
-    #         op, value = self.operator[i]
-    #         if op in _OPERATOR_MAP:
-    #             self.operator[i] = (_OPERATOR_MAP[op], value)
-    #         elif op not in _QUERY_OPERATOR:
-    #             raise ValueError(f"Operator {op} is not valid")
-
     def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the query
 
@@ -157,18 +161,27 @@ class Filter:
 
     Examples:
         >>> filter = Filter(op="and",
-        ...                 args=[{"op": "=", "args": ["datetime", "2020-01-01"]},
+        ...                 args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
         >>> assert filter.dict()
         ... == {"op": "=", "args": [{"op": "=", "args": ["datetime", "2020-01-01"]},
-        >>> filter = Filter(op="s_intersects",
-                            args=[
-                                { "property": "geometry" },
-                                { "type": "Polygon", "coordinates":
-                                    [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]]}])
+        >>> filter = Filter(op="or",
+        ...                 args=[{
+        ...                    "op": "=",
+        ...                    "args": [ { "property": "collection" }, "landsat8_l1tp"]
+        ...                  },
+        ...                  {
+        ...                     "op": "<=",
+        ...                     "args": [ { "property": "eo:cloud_cover" }, 10 ]
+        ...                   }]
         >>> assert filter.dict()
-        ... == {"op": "s_intersects", "args": [{"property": "geometry"},
-        ... {"type": "Polygon", "coordinates":
-        ...         [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]]}]}
+        ... == {"op": "or", "args": [{
+        ...                   "op": "=",
+        ...                    "args": [ { "property": "collection" }, "landsat8_l1tp"]
+        ...                  },
+        ...                  {
+        ...                    "op": "<=",
+        ...                    "args": [ { "property": "eo:cloud_cover" }, 10 ]
+        ...                   }]
 
     Arguments:
         op (str) -- Operator to use for the filter.
@@ -232,7 +245,7 @@ class SortBy:
         return out
 
     @classmethod
-    def from_str(cls, part: str) -> List["SortBy"]:
+    def from_string(cls, part: str) -> List["SortBy"]:
         """Create a list of SortBy from a string.
 
         Args:
@@ -242,7 +255,11 @@ class SortBy:
         Returns:
             List[SortBy]: list of SortBy
         """
-        sortby_list: List[SortBy] = []
+        # Check if we have a valid string
+        if part is None or part == "":
+            raise EmptyAttributeError("Empty string provided")
+
+        sortby_list: List["SortBy"] = []
         # Split on comma
         for p in part.split(","):
             # Check if the field is prefixed with + or -
@@ -299,7 +316,7 @@ class Field:
         return out
 
     @classmethod
-    def from_str(cls, fields: str) -> Tuple[Optional["Field"], Optional["Field"]]:
+    def from_string(cls, fields: str) -> Tuple[Optional["Field"], Optional["Field"]]:
         """Create a tuple of at least two Fields from a string.
 
         Args:
@@ -314,6 +331,10 @@ class Field:
                 Fields are separated to `include` and `exclude` fields.
                 Tuple is ordered as (include, exclude).
         """
+        # Check if we have a valid string
+        if fields is None or fields == "":
+            raise EmptyAttributeError("Empty string provided")
+
         includes: List[str] = []
         excludes: List[str] = []
         # Split on comma
@@ -342,7 +363,7 @@ class Field:
         return field_includes, field_exclude
 
 
-@dataclass
+@dataclass(frozen=True)
 class Search:
     """Search parameters for a STAC.
     Can be used for STAC API endpoint as described in the `STAC API - Item Search spec
@@ -421,16 +442,16 @@ class Search:
     """
 
     search_type: Literal["api", "static"]
-    bbox: Optional[BBox]
-    intersects: Optional[IntersectsLike]
-    datetime: Optional[Tuple[datetime_, Optional[datetime_]]]
-    ids: Optional[IdsLike]
-    collections: Optional[CollectionsLike]
-    query: Optional[QueryLike]
-    filter: Optional[FilterLike]
-    filter_lang: Optional[FilterLang]
-    sort_by: Optional[SortByLike]
-    fields: Optional[FieldsLike]
+    bbox: Optional[BBox] = None
+    intersects: Optional[IntersectsLike] = None
+    datetime: Optional[Tuple[datetime_, Optional[datetime_]]] = None
+    ids: Optional[IdsLike] = None
+    collections: Optional[CollectionsLike] = None
+    query: Optional[QueryLike] = None
+    filter: Optional[FilterLike] = None
+    filter_lang: Optional[FilterLang] = None
+    sort_by: Optional[SortByLike] = None
+    fields: Optional[FieldsLike] = None
     limit: Limit = DEFAUL_LIMIT
 
     @staticmethod
@@ -447,9 +468,8 @@ class Search:
         dt = dt.replace(tzinfo=None)
         return f'{dt.isoformat("T")}Z'
 
-    def _to_datetime_range(
-        self, component: str
-    ) -> Tuple[datetime_, Optional[datetime_]]:
+    @staticmethod
+    def _datetime_to_range(component: str) -> Tuple[datetime_, Optional[datetime_]]:
         """Converts a string like datetime component to a datetime range.
 
         Args:
@@ -470,7 +490,7 @@ class Search:
             if match.group("tz_info"):
                 return datetime_.fromisoformat(component), None
             else:
-                return datetime_.fromisoformat(f"{component}Z"), None
+                return datetime_.fromisoformat(f"{component}Z+00:00"), None
         else:
             year = int(match.group("year"))
             optional_month = match.group("month")
@@ -484,15 +504,24 @@ class Search:
                 0,
                 0,
                 0,
-                tzinfo=tzutc(),
+                tzinfo=timezone.utc,
             )
-            end = start + relativedelta(days=1, seconds=-1)
+            end = start + timedelta(days=1, seconds=-1)
         elif optional_month is not None:
-            start = datetime_(year, int(optional_month), 1, 0, 0, 0, tzinfo=tzutc())
-            end = start + relativedelta(months=1, seconds=-1)
+            start = datetime_(
+                year, int(optional_month), 1, 0, 0, 0, tzinfo=timezone.utc
+            )
+            end = start + timedelta(days=MONTH_DAYS[start.month], seconds=-1)
+            # After 4 years we need to check for leap years
+            if start.month == 2 and start.year % 4 == 0:
+                end += timedelta(days=1)
         else:
-            start = datetime_(year, 1, 1, 0, 0, 0, tzinfo=tzutc())
-            end = start + relativedelta(years=1, seconds=-1)
+            start = datetime_(year, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+            end = start + timedelta(days=365, seconds=-1)
+            # After 4 years we need to check for leap years
+            if start.year % 4 == 0:
+                end += timedelta(days=1)
+
         return start, end
 
     @root_validator
@@ -516,21 +545,29 @@ class Search:
         # Convert intersects to GeoJSON
         if intersects is not None:
             if not isinstance(intersects, GeoJSON):
-                v["intersects"] = GeoJSON.to_instance(intersects)
+                geo_Json_intersects = GeoJSON.to_instance(intersects)
+                geo_json_is = getattr(geo_Json_intersects, "is_valid", None)
+                if geo_json_is is None or not geo_Json_intersects.is_valid:
+                    raise ValueError("invalid intersects, GeoJSON is not valid")
+
+                v["intersects"] = geo_Json_intersects
 
         return v
 
     @validator("datetime", pre=True, always=True)
     def _validate_datetime(
-        cls, datetime: Datetimes
+        cls, datetime: Optional[Datetimes]
     ) -> Optional[Tuple[datetime_, Optional[datetime_]]]:
         """Validates the datetime attribute. If provided, it is converted to
         converted to start,end datetime range. If the datetime is whole datetime
         the end datetime will be None.
 
         Raises:
-            ValueError: If the datetime range is invalid.
-            ValueError: If the datetime initial type is invalid.
+            ValueError: If datetime range is more than 2 values.
+            ValueError: If datetime tuple range is more than 2 values.
+            ValueError: If datetime tuple start is not datetime.
+            ValueError: If datetime tuple end is not datetime or None.
+            ValueError: If datetime is not string, datetime or tuple of datetimes.
 
         Args:
             v (Datetimes): The datetime or string date with range option.
@@ -545,22 +582,59 @@ class Search:
                 # Convert date range to tuple of datetimes
                 if "/" in datetime:
                     datetimes = tuple(d for d in datetime.split("/"))
-                    if len(datetime) != 2:
+                    if len(datetimes) != 2:
                         raise ValueError(
                             f"""datetime range must be max 2 values
-                                and is {len(datetime)}"""
+                                and is {len(datetimes)}"""
                         )
-                    start, _ = cls._to_datetime_range(datetimes[0])
-                    backup_end, end = cls._to_datetime_range(datetimes[1])
-                    new_datetime = (start, end or backup_end)
+                    start, backup_start = cls._datetime_to_range(datetimes[0])
+                    backup_end, end = cls._datetime_to_range(datetimes[1])
+                    if backup_end < start:
+                        logger.warning(
+                            """invalid datetime range, start must be before end,
+                            switching values"""
+                        )
+                        if backup_start is None:
+                            new_datetime = (backup_end, start)
+                        else:
+                            new_datetime = (backup_end, backup_start)
+                    else:
+                        new_datetime = (start, end or backup_end)
                 else:  # Single date string
-                    new_datetime = cls._to_datetime_range(datetime)
+                    new_datetime = cls._datetime_to_range(datetime)
             # Convert datetime to tuple of datetimes with None end
             elif isinstance(datetime, datetime_):
                 new_datetime = (datetime, None)
-            else:
-                raise ValueError(f"invalid datetime type: {type(datetime)}")
+            elif isinstance(datetime, tuple):
+                # Check if tuple is valid
+                if len(datetime) == 1:
+                    datetime = (datetime[0], None)
+                elif len(datetime) != 2:
+                    raise ValueError(
+                        f"""datetime range must be max 2 values
+                            and is {len(datetime)}"""
+                    )
+                if not isinstance(datetime[0], datetime_):
+                    raise ValueError(
+                        "invalid datetime tuple, start must be a datetime object"
+                    )
+                if datetime[1] is not None and not isinstance(datetime[1], datetime_):
+                    raise ValueError(
+                        "invalid datetime tuple, end must be a datetime object or None"
+                    )
+                if datetime[1] is not None and datetime[0] > datetime[1]:
+                    logger.warning(
+                        """invalid datetime range, start must be before end,
+                        switching values"""
+                    )
+                    datetime = (datetime[1], datetime[0])
 
+                new_datetime = datetime
+            else:
+                raise ValueError(
+                    f"""invalid datetime type: {type(datetime)},
+                    must be str, datetime or tuple of datetimes"""
+                )
         return new_datetime
 
     @validator("query")
@@ -624,7 +698,7 @@ class Search:
         Returns:
             Dict: The dictionary of attributes.
         """
-        if v.get("filter_lang") is None:
+        if v.get("filter_lang") is None and v.get("filter") is not None:
             # If filter is string it is cql2-text
             if isinstance(v.get("filter"), str):
                 v["filter_lang"] = "cql2-text"
@@ -633,7 +707,7 @@ class Search:
         return v
 
     @validator("sort_by")
-    def _convert_sortby(cls, sortby: SortByLike) -> Optional[List[SortBy]]:
+    def _convert_sortby(cls, sortby: SortByLike) -> Optional[List["SortBy"]]:
         """Converts the sortby attribute to a SortBy object.
         If string is provided, it is converted to a list of SortBy object.
         Else if a list is provided, it is converted to a list of SortBy objects.
@@ -643,11 +717,11 @@ class Search:
         Returns:
             Optional[List[SortBy]]: The list of SortBy objects.
         """
-        new_sortby: Optional[List[SortBy]] = None
+        new_sortby: Optional[List["SortBy"]] = None
         if sortby is not None:
             # Convert sortby string to list of SortBy objects
             if isinstance(sortby, str):
-                new_sortby = SortBy.from_string(sortby)  # type: ignore
+                new_sortby = SortBy.from_string(sortby)
             else:  # Convert sortby list of dict to list of SortBy objects
                 new_sortby = []
                 sortby = cast(List, sortby)
@@ -681,7 +755,7 @@ class Search:
         if fields is not None:
             # Convert fields string to tuple of Fields objects
             if isinstance(fields, str):
-                new_fields = Field.from_string(fields)  # type: ignore
+                new_fields = Field.from_string(fields)
             # Convert fields list of dict to list of Fields objects
             elif isinstance(fields, tuple):
                 fields = cast(Tuple[Fields, Fields], fields)
@@ -704,77 +778,6 @@ class Search:
                 else:
                     new_fields = (None, field)
         return new_fields
-
-    # def __post_init__(self):
-    #     # Check if bbox and intersects are mutually exclusive
-    #     if self.bbox is not None and self.intersects is not None:
-    #         logger.warning(
-    #             "bbox and intersects are mutually exclusive, bbox will be ignored"
-    #         )
-    #         self.bbox = None
-
-    #     # Convert bbox to GeoJSON
-    #     if self.intersects is not None:
-    #         if not isinstance(self.intersects, GeoJSON):
-    #             self.intersects = GeoJSON.to_instance(self.intersects)
-
-    #     # Convert datetime to datetime object TODO
-    #     if self.datetime is not None:
-    #         if isinstance(self.datetime, str):
-    #             if "/" in self.datetime:
-    #                 datetimes = tuple(d for d in self.datetime.split("/"))
-    #                 if len(self.datetime) != 2:
-    #                     raise ValueError(
-    #                         f"""datetime range must be max 2 values
-    #                             and is {len(self.datetime)}"
-    #                     )
-    #                 start, _ = self._to_datetime_range(datetimes[0])
-    #                 backup_end, end = self._to_datetime_range(datetimes[1])
-    #                 self.datetime = (start, end or backup_end)
-    #             else:
-    #                 self.datetime = self._to_datetime_range(self.datetime)
-    #         elif isinstance(self.datetime, datetime_):
-    #             self.datetime = (self.datetime,)
-
-    #     # Validate query
-    #     if self.query is not None:
-    #         for i in range(len(self.query)):
-    #             if not isinstance(self.query[i], Query):
-    #                 self.query[i] = Query(**self.query[i])
-
-    #     # Validate filter_lang
-    #     if self.filter is not None and self.filter_lang is not None:
-    #         if isinstance(self.filter, str):
-    #             self.filter_lang = "cql2-text"
-    #         elif isinstance(self.filter, dict):
-    #             self.filter_lang = "cql2-json"
-
-    #     # Validate filter
-    #     if self.filter is not None:
-    #         if not isinstance(self.filter, str):
-    #             self.filter = Filter(**self.filter)
-
-    #     # Validate sort_by
-    #     if self.sort_by is not None:
-    #         if isinstance(self.sort_by, str):
-    #             self.sort_by = SortBy.from_str(self.sort_by)
-    #         else:
-    #             for i in range(len(self.sort_by)):
-    #                 if not isinstance(self.sort_by[i], SortBy):
-    #                     self.sort_by[i] = SortBy(**self.sort_by[i])
-
-    #     # Validate fields
-    #     if self.fields is not None:
-    #         if isinstance(self.fields, str):
-    #             self.fields = Field.from_str(self.fields)
-    #         if isinstance(self.fields, tuple):
-    #             # One field must be included the other excluded
-    #             field_first, field_second = self.fields
-    #             field_first = Field(**field_first)
-    #             field_second = Field(**field_second)
-    #             self.fields = (field_first, field_second)
-    #         else:
-    #             self.fields = (Field(**self.fields),)
 
     def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the cls

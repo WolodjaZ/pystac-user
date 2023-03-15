@@ -61,7 +61,6 @@ repos:
               - pytest-vcr
               - types-requests
               - types-aiofiles
-              - types-python-dateutil
 
 -   repo: local
     hooks:

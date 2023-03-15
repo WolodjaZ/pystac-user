@@ -14,7 +14,7 @@ BBox = Union[
 ]
 # Datetime can be a string, datetime object or two datetime objects
 # for a range. If string is with `/` it is a range
-Datetimes = Union[str, datetime, Tuple[datetime, datetime]]
+Datetimes = Union[str, datetime, Tuple[datetime, Optional[datetime]]]
 # Geometry object that geojson can parse
 Intersects = Type[GeoJSON]
 IntersectsLike = Union[Dict[str, Any], Intersects]

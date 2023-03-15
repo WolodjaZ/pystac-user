@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 import json
 import logging
 import re
 from copy import deepcopy
 from datetime import datetime as datetime_
 from datetime import timezone
-from typing import Any, List, Literal, Tuple, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzutc
@@ -36,7 +34,7 @@ from pystac_user.utils import merge_schemas_dict
 logger = logging.getLogger("pystac_user")
 
 DEFAUL_LIMIT = 100
-_QUERY_OPERATOR: list[str] = [
+_QUERY_OPERATOR: List[str] = [
     "eq",
     "neq",
     "lt",
@@ -48,7 +46,7 @@ _QUERY_OPERATOR: list[str] = [
     "contains",
     "in",
 ]
-_OPERATOR_MAP: dict[str, str] = {
+_OPERATOR_MAP: Dict[str, str] = {
     "==": "eq",
     "!=": "neq",
     "<": "lt",
@@ -78,14 +76,11 @@ class Query:
         }
     Examples:
         >>> query = Query(property="datetime", operator=[("eq", "2020-01-01")])
-        >>> assert query.dict()
-        ... == {'property': 'datetime', 'operator': [('eq', '2020-01-01')]}
+        >>> assert query.dict() == {'datetime': {'eq': '2020-01-01'}}
         >>> query = Query(property="datetime",
         ...         operator=[(">", "2020-01-01"), ("<", "2020-01-02")])
         >>> assert query.dict()
-        ... == {'property': 'datetime', 'operator': [
-        ...                         ('gt', '2020-01-01'), ('lt', '2020-01-02')]}
-
+        ... == {'datetime': {'gt': '2020-01-01', 'lt': '2020-01-02'}}
     Arguments:
         property (str) -- Property to query
         operator (List[Tuple[str, Any]]) -- Operator and value to query.
@@ -94,28 +89,27 @@ class Query:
     """
 
     property: str
-    operator: list[tuple[str, Any]]
+    operator: List[Tuple[str, Any]]
 
-    @validator("operator")
-    def check_operator(cls, v: list[tuple[str, Any]]) -> list[tuple[str, Any]]:
+    @validator("operator", each_item=True)
+    def check_operator(cls, v: Tuple[str, Any]) -> Tuple[str, Any]:
         """Check if operator is valid with `_QUERY_OPERATOR`.
 
         Raises:
             ValueError: If the operator is not valid.
         """
-        # Iters over the list of operators
-        for i in range(len(v)):
-            op, value = v[i]
-            # If the operator is in the map, replace it
-            if op in _OPERATOR_MAP:
-                v[i] = (_OPERATOR_MAP[op], value)
-            # Check if it is in the valid operators. If not raise an error
-            if op not in _QUERY_OPERATOR:
-                raise ValueError(
-                    f"""Operator {op} is not valid it should be one of
-                        {_QUERY_OPERATOR} or {_OPERATOR_MAP.keys()}"""
-                )
-        return v
+        op, value = v
+        # If the operator is in the map, replace it
+        if op in _OPERATOR_MAP:
+            op = _OPERATOR_MAP[op]
+
+        # Check if it is in the valid operators. If not raise an error
+        if op not in _QUERY_OPERATOR:
+            raise ValueError(
+                f"""Operator {op} is not valid it should be one of
+                    {_QUERY_OPERATOR} or {_OPERATOR_MAP.keys()}"""
+            )
+        return (op, value)
 
     # def __post_init__(self):
     #     # Check if operator is valid
@@ -126,13 +120,13 @@ class Query:
     #         elif op not in _QUERY_OPERATOR:
     #             raise ValueError(f"Operator {op} is not valid")
 
-    def dict(self) -> dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the query
 
         Returns:
             Dict[str, Any] -- A dict representation of the query.
         """
-        out: dict[str, Any] = {self.property: {}}
+        out: Dict[str, Any] = {self.property: {}}
         for op, value in self.operator:
             out[self.property][op] = value
 
@@ -182,9 +176,9 @@ class Filter:
     """
 
     op: str
-    args: list[dict[str, Any]]
+    args: List[Dict[str, Any]]
 
-    def dict(self) -> dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the filter"""
         out = {"op": self.op, "args": self.args}
         return out
@@ -226,7 +220,7 @@ class SortBy:
     field: str
     direction: Literal["asc", "desc"]
 
-    def dict(self) -> dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the sort"""
         out = {"field": self.field, "direction": cast(str, self.direction)}
         return out
@@ -238,7 +232,7 @@ class SortBy:
         return out
 
     @classmethod
-    def from_str(cls, part: str) -> list[SortBy]:
+    def from_str(cls, part: str) -> List["SortBy"]:
         """Create a list of SortBy from a string.
 
         Args:
@@ -246,9 +240,9 @@ class SortBy:
                 Should be a comma separated list of fields with a + or - prefix.
 
         Returns:
-            list[SortBy]: list of SortBy
+            List[SortBy]: list of SortBy
         """
-        sortby_list: list[SortBy] = []
+        sortby_list: List[SortBy] = []
         # Split on comma
         for p in part.split(","):
             # Check if the field is prefixed with + or -
@@ -276,10 +270,10 @@ class Field:
         }
 
     Examples:
-        >>> field = Field(type="include", fields=["datetime", "cloud_cover"])
+        >>> field = Field(field_type="include", fields=["datetime", "cloud_cover"])
         >>> assert field.dict() == {"include": ["datetime", "cloud_cover"]}
         >>> assert str(field) == "+datetime,+cloud_cover"
-        >>> field = Field(type="exclude", fields=["datetime", "cloud_cover"])
+        >>> field = Field(field_type="exclude", fields=["datetime", "cloud_cover"])
         >>> assert field.dict() == {"exclude": ["datetime", "cloud_cover"]}
         >>> assert str(field) == "-datetime,-cloud_cover"
         >>> fields = Field.from_str("+datetime,-cloud_cover")
@@ -290,22 +284,22 @@ class Field:
         >>> assert fields[1] is None
     """
 
-    type: Literal["include", "exclude"]
-    fields: list[str]
+    field_type: Literal["include", "exclude"]
+    fields: List[str]
 
-    def dict(self) -> dict[str, list[str]]:
+    def dict(self) -> Dict[str, List[str]]:
         """Return a dict representation of the fields"""
-        out = {cast(str, self.type): self.fields}
+        out = {cast(str, self.field_type): self.fields}
         return out
 
     def __str__(self) -> str:
         """Return a string representation of the fields"""
-        sgn = "+" if self.type == "include" else "-"
+        sgn = "+" if self.field_type == "include" else "-"
         out = ",".join([f"{sgn}{f}" for f in self.fields])
         return out
 
     @classmethod
-    def from_str(cls, fields: str) -> tuple[Field | None, Field | None]:
+    def from_str(cls, fields: str) -> Tuple[Optional["Field"], Optional["Field"]]:
         """Create a tuple of at least two Fields from a string.
 
         Args:
@@ -320,8 +314,8 @@ class Field:
                 Fields are separated to `include` and `exclude` fields.
                 Tuple is ordered as (include, exclude).
         """
-        includes: list[str] = []
-        excludes: list[str] = []
+        includes: List[str] = []
+        excludes: List[str] = []
         # Split on comma
         for field in fields.split(","):
             # Check if the field is prefixed with + or -
@@ -335,10 +329,10 @@ class Field:
 
         # Create the fields
         field_includes = (
-            cls(type="include", fields=includes) if len(includes) > 0 else None
+            cls(field_type="include", fields=includes) if len(includes) > 0 else None
         )
         field_exclude = (
-            cls(type="exclude", fields=excludes) if len(excludes) > 0 else None
+            cls(field_type="exclude", fields=excludes) if len(excludes) > 0 else None
         )
 
         # Check if we have at least one field
@@ -427,16 +421,16 @@ class Search:
     """
 
     search_type: Literal["api", "static"]
-    bbox: BBox | None
-    intersects: IntersectsLike | None
-    datetime: tuple[datetime_, datetime_ | None] | None
-    ids: IdsLike | None
-    collections: CollectionsLike | None
-    query: QueryLike | None
-    filter: FilterLike | None
-    filter_lang: FilterLang | None
-    sort_by: SortByLike | None
-    fields: FieldsLike | None
+    bbox: Optional[BBox]
+    intersects: Optional[IntersectsLike]
+    datetime: Optional[Tuple[datetime_, Optional[datetime_]]]
+    ids: Optional[IdsLike]
+    collections: Optional[CollectionsLike]
+    query: Optional[QueryLike]
+    filter: Optional[FilterLike]
+    filter_lang: Optional[FilterLang]
+    sort_by: Optional[SortByLike]
+    fields: Optional[FieldsLike]
     limit: Limit = DEFAUL_LIMIT
 
     @staticmethod
@@ -453,7 +447,9 @@ class Search:
         dt = dt.replace(tzinfo=None)
         return f'{dt.isoformat("T")}Z'
 
-    def _to_datetime_range(self, component: str) -> tuple[datetime_, datetime_ | None]:
+    def _to_datetime_range(
+        self, component: str
+    ) -> Tuple[datetime_, Optional[datetime_]]:
         """Converts a string like datetime component to a datetime range.
 
         Args:
@@ -463,7 +459,7 @@ class Search:
             ValueError: If the component is invalid.
 
         Returns:
-            tuple[datetime_, datetime_ | None]: A tuple of start and end datetimes.
+            Tuple[datetime_, Optional[datetime_]]: A tuple of start and end datetimes.
                 end datetime can be None depending on the component. If the component
                 is full datetime format than end datetime will be None.
         """
@@ -500,16 +496,16 @@ class Search:
         return start, end
 
     @root_validator
-    def _validate_positioning(cls, v: dict[str, Any]) -> dict[str, Any]:
+    def _validate_positioning(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """Validates the intersects and bbox attributes.
         If both are provided, bbox is ignored. If intersects is provided, it is
         converted to GeoJSON.
 
         Args:
-            v (dict): The dictionary of attributes.
+            v (Dict): The dictionary of attributes.
 
         Returns:
-            dict: The dictionary of attributes.
+            Dict: The dictionary of attributes.
         """
         # Check if bbox and intersects are mutually exclusive
         intersects, bbox = v.get("intersects"), v.get("bbox")
@@ -527,7 +523,7 @@ class Search:
     @validator("datetime", pre=True, always=True)
     def _validate_datetime(
         cls, datetime: Datetimes
-    ) -> tuple[datetime_, datetime_ | None] | None:
+    ) -> Optional[Tuple[datetime_, Optional[datetime_]]]:
         """Validates the datetime attribute. If provided, it is converted to
         converted to start,end datetime range. If the datetime is whole datetime
         the end datetime will be None.
@@ -540,10 +536,10 @@ class Search:
             v (Datetimes): The datetime or string date with range option.
 
         Returns:
-            Tuple[datetime_, datetime_ | None] | None:
+            Optional[Tuple[datetime_, Optional[datetime_]]]::
                                             The start and end datetime range.
         """
-        new_datetime: tuple[datetime_, datetime_ | None] | None = None
+        new_datetime: Optional[Tuple[datetime_, Optional[datetime_]]] = None
         if datetime is not None:
             if isinstance(datetime, str):
                 # Convert date range to tuple of datetimes
@@ -568,20 +564,20 @@ class Search:
         return new_datetime
 
     @validator("query")
-    def _convert_query(cls, query: QueryLike | None) -> list[Query] | None:
+    def _convert_query(cls, query: Optional[QueryLike]) -> Optional[List[Query]]:
         """Converts the query attribute to a Query object.
 
         Args:
-            query (QueryLike): The query string or list of query objects.
+            query (Optional[QueryLike]): The query string or list of query objects.
 
         Returns:
-            List[Query]: The list of Query objects.
+             Optional[List[Query]]: The list of Query objects.
         """
 
-        new_query: list[Query] | None = None
+        new_query: Optional[List[Query]] = None
         if query is not None:
             new_query = []
-            # Convert query list of dict to list of Query objects
+            # Convert query List of dict to List of Query objects
             for q in query:
                 if isinstance(q, Query):
                     new_query.append(q)
@@ -590,7 +586,7 @@ class Search:
         return new_query
 
     @validator("filter")
-    def _convert_filter(cls, filter: FilterLike) -> Filter | None | str:
+    def _convert_filter(cls, filter: FilterLike) -> Union[Optional[Filter], str]:
         """Converts the filter attribute to a Filter object.
 
         Exceptions:
@@ -600,9 +596,9 @@ class Search:
             filter (FilterLike): The filter object dict or string.
 
         Returns:
-            Filter | None | str: The Filter object or None or string.
+            Union[Optional[Filter], str]: The Filter object or None or string.
         """
-        new_filter: Filter | None | str = None
+        new_filter: Union[Optional[Filter], str] = None
         if filter is not None:
             # If filter is not a string it is a dict
             # Convert filter dict to Filter object
@@ -618,15 +614,15 @@ class Search:
         return new_filter
 
     @root_validator
-    def _validate_filter_lang(cls, v: dict[str, Any]) -> dict[str, Any]:
+    def _validate_filter_lang(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """Validates the filter_lang attribute.
         If not provided, it is set depending on `filter` type.
 
         Args:
-            v (dict): The dictionary of attributes.
+            v (Dict): The dictionary of attributes.
 
         Returns:
-            dict: The dictionary of attributes.
+            Dict: The dictionary of attributes.
         """
         if v.get("filter_lang") is None:
             # If filter is string it is cql2-text
@@ -636,8 +632,8 @@ class Search:
                 v["filter_lang"] = "cql2-json"
         return v
 
-    @validator("sortby")
-    def _convert_sortby(cls, sortby: SortByLike) -> list[SortBy] | None:
+    @validator("sort_by")
+    def _convert_sortby(cls, sortby: SortByLike) -> Optional[List[SortBy]]:
         """Converts the sortby attribute to a SortBy object.
         If string is provided, it is converted to a list of SortBy object.
         Else if a list is provided, it is converted to a list of SortBy objects.
@@ -645,16 +641,16 @@ class Search:
         Args:
             sortby (SortByLike): list of SortBy objects or string.
         Returns:
-            List[SortBy] | None: The list of SortBy objects.
+            Optional[List[SortBy]]: The list of SortBy objects.
         """
-        new_sortby: list[SortBy] | None = None
+        new_sortby: Optional[List[SortBy]] = None
         if sortby is not None:
             # Convert sortby string to list of SortBy objects
             if isinstance(sortby, str):
                 new_sortby = SortBy.from_string(sortby)  # type: ignore
             else:  # Convert sortby list of dict to list of SortBy objects
                 new_sortby = []
-                sortby = cast(list, sortby)
+                sortby = cast(List, sortby)
                 for i in range(len(sortby)):
                     if isinstance(sortby[i], SortBy):
                         sortby_item = cast(SortBy, sortby[i])
@@ -669,7 +665,7 @@ class Search:
     @validator("fields")
     def _convert_fields(
         cls, fields: FieldsLike
-    ) -> tuple[Field | None, Field | None] | None:
+    ) -> Optional[Tuple[Optional[Field], Optional[Field]]]:
         """Converts the fields attribute to a Fields object.
         If string is provided, it is converted to a tuple of Fields object.
         Else if a list is provided, it is converted to a list of Fields objects.
@@ -678,9 +674,10 @@ class Search:
         Args:
             fields (FieldsLike): list of Fields objects or string.
         Returns:
-            Tuple[Field | None, Field | None] | None: The tuple of Fields objects.
+            Optional[Tuple[Optional[Field], Optional[Field]]]:
+                The tuple of Fields objects.
         """
-        new_fields: tuple[Field | None, Field | None] | None = None
+        new_fields: Optional[Tuple[Optional[Field], Optional[Field]]] = None
         if fields is not None:
             # Convert fields string to tuple of Fields objects
             if isinstance(fields, str):
@@ -690,19 +687,19 @@ class Search:
                 fields = cast(Tuple[Fields, Fields], fields)
                 field_first_data, field_second_data = fields
                 field_first = Field(
-                    type=field_first_data[0], fields=field_first_data[1]
-                )  # type: ignore
+                    field_type=field_first_data[0], fields=field_first_data[1]
+                )
                 field_second = Field(
-                    type=field_second_data[0], fields=field_second_data[1]
-                )  # type: ignore
-                if field_first.type == "include":
+                    field_type=field_second_data[0], fields=field_second_data[1]
+                )
+                if field_first.field_type == "include":
                     new_fields = (field_first, field_second)
                 else:
                     new_fields = (field_second, field_first)
             else:  # Convert filed dict to Field object
                 fields = cast(Fields, fields)
-                field = Field(type=fields[0], fields=fields[1])
-                if field.type == "include":
+                field = Field(field_type=fields[0], fields=fields[1])
+                if field.field_type == "include":
                     new_fields = (field, None)
                 else:
                     new_fields = (None, field)
@@ -779,13 +776,13 @@ class Search:
     #         else:
     #             self.fields = (Field(**self.fields),)
 
-    def dict(self) -> dict[str, Any]:
+    def dict(self) -> Dict[str, Any]:
         """Return a dict representation of the cls
 
         Returns:
-            dict: The dict representation of the search
+            Dict: The dict representation of the search
         """
-        out: dict[str, Any] = {}
+        out: Dict[str, Any] = {}
         if self.bbox is not None:
             out["bbox"] = self.bbox
         if self.intersects is not None:
@@ -831,12 +828,11 @@ class Search:
             out["limit"] = self.limit
         return out
 
-    # TODO
-    def get_request(self) -> dict[str, Any]:  # type: ignore
+    def get_request(self) -> Dict[str, Any]:
         """Return a dict representation of the search for GET requests.
 
         Returns:
-            dict: The dict representation of the search
+            Dict: The dict representation of the search
         """
         search_params = deepcopy(self.dict())
         if "bbox" in search_params:
@@ -860,11 +856,10 @@ class Search:
 
         return search_params
 
-    # TODO
-    def post_request(self) -> dict[str, Any]:  # type: ignore
+    def post_request(self) -> Dict[str, Any]:
         """Return a dict representation of the search for POST requests.
 
         Returns:
-            dict: The dict representation of the search
+            Dict: The dict representation of the search
         """
-        return deepcopy(self.dict())  # type: ignore
+        return deepcopy(self.dict())

@@ -1,9 +1,8 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
-from geojson import GeoJSON
-
 # Query Parameter Table
+from geojson import GeoJSON
 
 # Limit of objects
 Limit = Optional[int]
@@ -19,11 +18,14 @@ Datetimes = Union[str, datetime, Tuple[datetime, Optional[datetime]]]
 Intersects = Type[GeoJSON]
 IntersectsLike = Union[Dict[str, Any], Intersects]
 # List of string ids of items
-IdsLike = List[str]
+Ids = List[str]
+IdsLike = Union[Ids, str]
 # List of string ids of collections
-CollectionsLike = List[str]
+Collections = List[str]
+CollectionsLike = Union[Collections, str]
 # Query parameters
-QueryLike = List[Tuple[str, List[Tuple[str, Any]]]]
+Queries = Tuple[str, List[Tuple[str, Any]]]
+QueryLike = List[Queries]
 # Filter parameters
 Filters = Tuple[str, List[Dict[str, Any]]]
 FilterLike = Union[str, Filters]

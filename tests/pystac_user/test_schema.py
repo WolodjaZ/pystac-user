@@ -629,10 +629,12 @@ class TestSearch:
     def test_search_type(self):
         search = Search(search_type="api")
         assert search is not None
+        assert search.search_type is not None
         assert search.search_type == "api"
 
         search = Search(search_type="static")
         assert search is not None
+        assert search.search_type is not None
         assert search.search_type == "static"
 
         with pytest.raises(ValueError) as excinfo:
@@ -648,20 +650,24 @@ class TestSearch:
     def test_bbox(self):
         search = Search(search_type="api", bbox=[-180, -90, 180, 90])
         assert search is not None
+        assert search.bbox is not None
         assert search.bbox == (-180.0, -90.0, 180.0, 90.0)
 
         search = Search(search_type="api", bbox=[-180, -90, 180, 90, 0, 100])
         assert search is not None
+        assert search.bbox is not None
         assert search.bbox == (-180.0, -90.0, 180.0, 90.0, 0.0, 100.0)
 
         search = Search(search_type="api", bbox=[-180.0, -90.0, 180.0, 90.0])
         assert search is not None
+        assert search.bbox is not None
         assert search.bbox == (-180.0, -90.0, 180.0, 90.0)
 
         search = Search(
             search_type="api", bbox=[-180.0, -90.0, 180.0, 90.0, 0.0, 100.0]
         )
         assert search is not None
+        assert search.bbox is not None
         assert search.bbox == (-180.0, -90.0, 180.0, 90.0, 0.0, 100.0)
 
         with pytest.raises(ValueError) as excinfo:
@@ -709,6 +715,7 @@ class TestSearch:
             },
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {
             "type": "Polygon",
             "coordinates": [
@@ -731,6 +738,7 @@ class TestSearch:
             },
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {
             "type": "LineString",
             "coordinates": [
@@ -746,6 +754,7 @@ class TestSearch:
             search_type="api", intersects={"type": "Point", "coordinates": [-180, -90]}
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {"type": "Point", "coordinates": [-180, -90]}
 
         coordinates = [
@@ -773,6 +782,7 @@ class TestSearch:
             intersects={"type": "MultiPolygon", "coordinates": coordinates},
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {"type": "MultiPolygon", "coordinates": coordinates}
 
         coordinates = [
@@ -784,6 +794,7 @@ class TestSearch:
             intersects={"type": "MultiLineString", "coordinates": coordinates},
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {
             "type": "MultiLineString",
             "coordinates": coordinates,
@@ -797,6 +808,7 @@ class TestSearch:
             },
         )
         assert search is not None
+        assert search.intersects is not None
         assert search.intersects == {
             "type": "MultiPoint",
             "coordinates": [[-73, 40], [-73.99, 40.734], [-73, 40]],
@@ -832,6 +844,7 @@ class TestSearch:
         single_year = "2018"
         search = Search(search_type="api", datetime=single_year)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -841,6 +854,7 @@ class TestSearch:
         single_year_month = "2018-01"
         search = Search(search_type="api", datetime=single_year_month)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -850,6 +864,7 @@ class TestSearch:
         single_year_month_day = "2018-01-01"
         search = Search(search_type="api", datetime=single_year_month_day)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -859,6 +874,7 @@ class TestSearch:
         single_reminder = "2018-01-01T00:00:00"
         search = Search(search_type="api", datetime=single_reminder)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[1] is None
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -866,6 +882,7 @@ class TestSearch:
         single_reminder_with_tz = "2018-01-01T10:00:00+10:00"
         search = Search(search_type="api", datetime=single_reminder_with_tz)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[1] is None
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -873,6 +890,7 @@ class TestSearch:
         datetime_object = datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         search = Search(search_type="api", datetime=datetime_object)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[1] is None
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
@@ -883,6 +901,7 @@ class TestSearch:
         )
         search = Search(search_type="api", datetime=datetime_object_tuple)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -892,6 +911,7 @@ class TestSearch:
         range_year = "2018/2019"
         search = Search(search_type="api", datetime=range_year)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -901,6 +921,7 @@ class TestSearch:
         range_year_month = "2018-01/2019-01"
         search = Search(search_type="api", datetime=range_year_month)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -910,6 +931,7 @@ class TestSearch:
         range_year_month = "2018-01/2019"
         search = Search(search_type="api", datetime=range_year_month)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -919,6 +941,7 @@ class TestSearch:
         range_year_month = "2018/2019-01"
         search = Search(search_type="api", datetime=range_year_month)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -928,6 +951,7 @@ class TestSearch:
         range_year_month_day = "2018-01-01/2019-01-01"
         search = Search(search_type="api", datetime=range_year_month_day)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -937,6 +961,7 @@ class TestSearch:
         range_year_month_day = "2018-01-01/2019-01"
         search = Search(search_type="api", datetime=range_year_month_day)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -946,7 +971,7 @@ class TestSearch:
         range_year_month_day = "2018-01/2019-01-01"
         search = Search(search_type="api", datetime=range_year_month_day)
         assert search is not None
-        assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -956,6 +981,7 @@ class TestSearch:
         range_reminder = "2018-01-01T10:00:00/2019-01-01T22:59:59"
         search = Search(search_type="api", datetime=range_reminder)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -965,6 +991,7 @@ class TestSearch:
         range_reminder_with_tz = "2018-01-01T10:00:00+01:00/2019-01-01T22:59:59+01:00"
         search = Search(search_type="api", datetime=range_reminder_with_tz)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0].astimezone(timezone.utc) == datetime(
             2018, 1, 1, 9, 0, 0, tzinfo=timezone.utc
@@ -976,6 +1003,7 @@ class TestSearch:
         range_flip_year = "2019/2018"
         search = Search(search_type="api", datetime=range_flip_year)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
         assert search.datetime[1] == datetime(
@@ -985,6 +1013,7 @@ class TestSearch:
         range_tuple = (datetime(2018, 1, 1), None)
         search = Search(search_type="api", datetime=range_tuple)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2018, 1, 1, 0, 0, 0)
         assert search.datetime[1] is None
@@ -992,6 +1021,7 @@ class TestSearch:
         range_tuple = (datetime(2020, 1, 1), datetime(2019, 1, 1))
         search = Search(search_type="api", datetime=range_tuple)
         assert search is not None
+        assert search.datetime is not None
         assert len(search.datetime) == 2
         assert search.datetime[0] == datetime(2019, 1, 1, 0, 0, 0)
         assert search.datetime[1] == datetime(2020, 1, 1, 0, 0, 0)
@@ -1054,6 +1084,372 @@ class TestSearch:
             search = Search(search_type="api", datetime=1)
 
         assert "datetime " in str(excinfo.value)
+
+    def test_ids(self):
+        search = Search(search_type="api", ids="1")
+        assert search is not None
+        assert search.ids is not None
+        assert search.ids == ["1"]
+
+        search = Search(search_type="api", ids="1,2,3")
+        assert search is not None
+        assert search.ids is not None
+        assert search.ids == ["1", "2", "3"]
+
+        search = Search(search_type="api", ids=["1", "2", "3"])
+        assert search is not None
+        assert search.ids is not None
+        assert search.ids == ["1", "2", "3"]
+
+        search = Search(search_type="api", ids=[1, 2, 3])
+        assert search is not None
+        assert search.ids is not None
+        assert search.ids == ["1", "2", "3"]
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", ids=1)
+
+        assert "ids" in str(excinfo.value)
+
+    def test_collection(self):
+        search = Search(search_type="api", collections="collection")
+        assert search is not None
+        search.collections is not None
+        assert search.collections == ["collection"]
+
+        search = Search(
+            search_type="api", collections="collection1,collection2,collection3"
+        )
+        assert search is not None
+        search.collections is not None
+        assert search.collections == ["collection1", "collection2", "collection3"]
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", collections=1)
+
+        assert "collections" in str(excinfo.value)
+
+    def test_query(self):
+        query = Query(property="bbox", operator=[("eq", 2)])
+        search = Search(search_type="api", query=query)
+        assert search is not None
+        assert search.query is not None
+        assert search.query == [query]
+
+        query = [
+            Query(property="bbox", operator=[("eq", 2)]),
+            Query(property="bbox", operator=[("eq", 2)]),
+        ]
+
+        search = Search(search_type="api", query=query)
+        assert search is not None
+        assert search.query is not None
+        assert search.query == query
+
+        query = ("bbox", [("eq", 2)])
+        search = Search(search_type="api", query=query)
+        assert search is not None
+        assert search.query is not None
+        assert search.query == [Query(property="bbox", operator=[("eq", 2)])]
+
+        query = [("bbox", [("eq", 2)]), ("bbox", [("eq", 2)])]
+        search = Search(search_type="api", query=query)
+        assert search is not None
+        assert search.query is not None
+        assert search.query == [
+            Query(property="bbox", operator=[("eq", 2)]),
+            Query(property="bbox", operator=[("eq", 2)]),
+        ]
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", query=1)
+
+        assert "query" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", query=[1])
+
+        assert "query" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", query=[("bbox")])
+
+        assert "query" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api", query=[("bbox", [("eq", 2)]), ("bbox", 1)]
+            )
+
+        assert "query" in str(excinfo.value)
+
+    def test_filter(self):
+        filter = Filter(
+            op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+        )
+        search = Search(search_type="api", filter=filter)
+        assert search is not None
+        assert search.filter is not None
+        assert search.filter_lang is not None
+        assert search.filter_lang == "cql2-json"
+        assert search.filter == filter
+
+        filter = ("and", [{"op": "=", "args": ["datetime", "2020-01-01"]}])
+        search = Search(search_type="api", filter=filter)
+        assert search is not None
+        assert search.filter is not None
+        assert search.filter_lang is not None
+        assert search.filter_lang == "cql2-json"
+        assert search.filter == Filter(
+            op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+        )
+
+        filter = ["and", [{"op": "=", "args": ["datetime", "2020-01-01"]}]]
+        search = Search(search_type="api", filter=filter)
+        assert search is not None
+        assert search.filter is not None
+        assert search.filter_lang is not None
+        assert search.filter_lang == "cql2-json"
+        assert search.filter == Filter(
+            op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+        )
+
+        filter = (
+            "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+            "AND collection='landsat8_l1tp'"
+        )
+        search = Search(search_type="api", filter=filter)
+        assert search is not None
+        assert search.filter is not None
+        assert search.filter_lang is not None
+        assert search.filter_lang == "cql2-text"
+        assert search.filter == filter
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", filter=1)
+
+        assert "filter" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", filter=["and"])
+
+        assert "filter" in str(excinfo.value)
+
+    def test_sort(self):
+        sort = SortBy(field="datetime", direction="asc")
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [sort]
+
+        sort = [
+            SortBy(field="datetime", direction="asc"),
+            SortBy(field="datetime", direction="asc"),
+        ]
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == sort
+
+        sort = [("asc", "datetime")]
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [SortBy(field="datetime", direction="asc")]
+
+        sort = [("asc", "datetime"), ("desc", "datetime")]
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [
+            SortBy(field="datetime", direction="asc"),
+            SortBy(field="datetime", direction="desc"),
+        ]
+
+        sort = [("asc", "datetime,datetime")]
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [
+            SortBy(field="datetime", direction="asc"),
+            SortBy(field="datetime", direction="asc"),
+        ]
+
+        sort = [("asc", "datetime"), ("desc", ["datetime", "datetime"])]
+
+        sort = "+datetime"
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [SortBy(field="datetime", direction="asc")]
+
+        sort = "+datetime,-datetime"
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [
+            SortBy(field="datetime", direction="asc"),
+            SortBy(field="datetime", direction="desc"),
+        ]
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", sort_by=1)
+
+        assert "sort_by" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", sort_by=[1])
+
+        assert "sort_by" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", sort_by=[("asc")])
+
+        assert "sort_by" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", sort_by=[("asc", "datetime"), 1])
+
+        assert "sort_by" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", sort_by=[("asc", {"datetime": "asc"})])
+
+        assert "sort_by" in str(excinfo.value)
+
+    def test_fields(self):
+        field = Field(field_type="include", fields=["datetime"])
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (field, None)
+
+        field = Field(field_type="exclude", fields=["datetime"])
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (None, field)
+
+        field = "+datetime,-datetime"
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (
+            Field(field_type="include", fields=["datetime"]),
+            Field(field_type="exclude", fields=["datetime"]),
+        )
+
+        field = "+datetime"
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (Field(field_type="include", fields=["datetime"]), None)
+
+        field = "-datetime"
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (None, Field(field_type="exclude", fields=["datetime"]))
+
+        field = (
+            Field(field_type="include", fields=["datetime"]),
+            Field(field_type="exclude", fields=["datetime"]),
+        )
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == field
+
+        field = ("include", ["datetime"])
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (Field(field_type="include", fields=["datetime"]), None)
+
+        field = ("exclude", ["datetime"])
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (None, Field(field_type="exclude", fields=["datetime"]))
+
+        field = [("include", ["datetime"]), ("exclude", ["datetime"])]
+        search = Search(search_type="api", fields=field)
+        assert search is not None
+        assert search.fields is not None
+        assert search.fields == (
+            Field(field_type="include", fields=["datetime"]),
+            Field(field_type="exclude", fields=["datetime"]),
+        )
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", fields=1)
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", fields=[1])
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", fields=[("include")])
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", fields=[("include", "datetime"), 1])
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[("include", ["datetime"]), ("include", ["datetime"]), 1],
+            )
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[("exclude", ["datetime"]), ("exclude", ["datetime"]), 1],
+            )
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[
+                    Field(field_type="include", fields=["datetime"]),
+                    Field(field_type="include", fields=["datetime"]),
+                ],
+            )
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[
+                    Field(field_type="exclude", fields=["datetime"]),
+                    Field(field_type="include", fields=["datetime"]),
+                    Field(field_type="include", fields=["datetime"]),
+                ],
+            )
+
+        assert "fields" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[
+                    Field(field_type="exclude", fields=["datetime"]),
+                    ("include", "datetime", "Wrong"),
+                ],
+            )
+
+        assert "fields" in str(excinfo.value)
 
     def test_to_dict(self):
         pass

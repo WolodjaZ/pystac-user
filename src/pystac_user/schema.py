@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import typing
 from copy import deepcopy
 from datetime import datetime as datetime_
 from datetime import timedelta, timezone
@@ -16,15 +17,18 @@ from pydantic.dataclasses import dataclass
 from pystac_user.exceptions import EmptyAttributeError
 from pystac_user.types import (
     BBox,
+    Collections,
     CollectionsLike,
     Datetimes,
-    Fields,
     FieldsLike,
     FilterLang,
     FilterLike,
+    Ids,
     IdsLike,
+    Intersects,
     IntersectsLike,
     Limit,
+    Queries,
     QueryLike,
     SortByLike,
 )
@@ -443,15 +447,15 @@ class Search:
 
     search_type: Literal["api", "static"]
     bbox: Optional[BBox] = None
-    intersects: Optional[IntersectsLike] = None
+    intersects: Optional["GeoJSON"] = None
     datetime: Optional[Tuple[datetime_, Optional[datetime_]]] = None
-    ids: Optional[IdsLike] = None
-    collections: Optional[CollectionsLike] = None
-    query: Optional[QueryLike] = None
-    filter: Optional[FilterLike] = None
+    ids: Optional[Ids] = None
+    collections: Optional[Collections] = None
+    query: Optional[List["Query"]] = None
+    filter: Union[Optional["Filter"], str] = None
     filter_lang: Optional[FilterLang] = None
-    sort_by: Optional[SortByLike] = None
-    fields: Optional[FieldsLike] = None
+    sort_by: Optional[List["SortBy"]] = None
+    fields: Optional[Tuple[Optional["Field"], Optional["Field"]]] = None
     limit: Limit = DEFAUL_LIMIT
 
     @staticmethod
@@ -524,11 +528,37 @@ class Search:
 
         return start, end
 
+    @validator("intersects", pre=True)
+    def _intersects_to_geojson(cls, v: IntersectsLike) -> Optional["GeoJSON"]:
+        """Converts intersects to GeoJSON.
+
+        Raises:
+            ValueError: If the intersects is not valid GeoJSON.
+
+        Args:
+            v (IntersectsLike): Intersects value.
+
+        Returns:
+            Intersects: GeoJSON Intersects.
+        """
+        new_v: Optional[Intersects]
+        if v is None:
+            new_v = v
+        elif not isinstance(v, GeoJSON):
+            geo_Json_intersects = GeoJSON.to_instance(v)
+            geo_json_is = getattr(geo_Json_intersects, "is_valid", None)
+            if geo_json_is is None or not geo_Json_intersects.is_valid:
+                raise ValueError("invalid intersects, GeoJSON is not valid")
+            new_v = geo_Json_intersects
+        else:
+            new_v = v
+
+        return new_v
+
     @root_validator
     def _validate_positioning(cls, v: Dict[str, Any]) -> Dict[str, Any]:
         """Validates the intersects and bbox attributes.
-        If both are provided, bbox is ignored. If intersects is provided, it is
-        converted to GeoJSON.
+        If both are provided, bbox is ignored.
 
         Args:
             v (Dict): The dictionary of attributes.
@@ -541,16 +571,6 @@ class Search:
         if intersects is not None and bbox is not None:
             logger.warning("bbox and intersects are mutually exclusive, bbox ignored")
             v["bbox"] = None
-
-        # Convert intersects to GeoJSON
-        if intersects is not None:
-            if not isinstance(intersects, GeoJSON):
-                geo_Json_intersects = GeoJSON.to_instance(intersects)
-                geo_json_is = getattr(geo_Json_intersects, "is_valid", None)
-                if geo_json_is is None or not geo_Json_intersects.is_valid:
-                    raise ValueError("invalid intersects, GeoJSON is not valid")
-
-                v["intersects"] = geo_Json_intersects
 
         return v
 
@@ -637,12 +657,51 @@ class Search:
                 )
         return new_datetime
 
-    @validator("query")
-    def _convert_query(cls, query: Optional[QueryLike]) -> Optional[List[Query]]:
-        """Converts the query attribute to a Query object.
+    @validator("ids", "collections", pre=True)
+    def _covert_ids(
+        cls, v: Optional[Union[IdsLike, CollectionsLike]]
+    ) -> Optional[Union[Ids, Collections]]:
+        """Converts the ids and collections attributes to a list of strings.
+
+        Raises:
+            ValueError: If the ids or collections is not a string or list.
 
         Args:
-            query (Optional[QueryLike]): The query string or list of query objects.
+            v (Optional[Union[IdsLike, CollectionsLike]]): The ids or collections.
+
+        Returns:
+            Optional[Union[Ids, Collections]]: The list of ids or collections.
+        """
+        new_v: Optional[Union[Ids, Collections]]
+        if v is None:
+            new_v = None
+        elif isinstance(v, str):
+            if "," in v:
+                new_v = v.split(",")
+            else:
+                new_v = [v]
+        elif isinstance(v, list):
+            new_v = v
+        else:
+            raise ValueError(
+                f"""invalid type: {type(v)},
+                must be type {Optional[Union[IdsLike, CollectionsLike]]}"""
+            )
+
+        return new_v
+
+    @validator("query", pre=True)
+    def _convert_query(
+        cls, query: Optional[Union[QueryLike, "Query", List["Query"]]]
+    ) -> Optional[List["Query"]]:
+        """Converts the query attribute to a Query object.
+
+        Raises:
+            ValueError: If the query is valid type
+            ValueError: If the query is tuple with not 2 values
+
+        Args:
+            query (Optional[Union[QueryLike, "Query", List["Query"]]]): The query.
 
         Returns:
              Optional[List[Query]]: The list of Query objects.
@@ -652,35 +711,71 @@ class Search:
         if query is not None:
             new_query = []
             # Convert query List of dict to List of Query objects
-            for q in query:
-                if isinstance(q, Query):
-                    new_query.append(q)
+            if isinstance(query, list):
+                # Maybe it is a query tuple
+                try:
+                    new_query.append(
+                        Query(property=query[0], operator=query[1])  # type: ignore
+                    )
+                    return new_query
+                except Exception as e:
+                    logger.debug(e)
+
+                # If not list of query tuples
+                for q in query:
+                    if isinstance(q, Query):
+                        new_query.append(q)
+                    else:
+                        new_query.append(Query(property=q[0], operator=q[1]))
+            else:
+                if isinstance(query, Query):
+                    new_query.append(query)
+                elif isinstance(query, tuple):
+                    if len(query) != 2:
+                        raise ValueError(
+                            f"""query tuple must be 2 values and is {len(query)}"""
+                        )
+                    new_query.append(Query(property=query[0], operator=query[1]))
                 else:
-                    new_query.append(Query(property=q[0], operator=q[1]))
+                    raise ValueError(
+                        f"""invalid query type: {type(query)}, should be Query type
+                        or {Queries}"""
+                    )
+
         return new_query
 
-    @validator("filter")
-    def _convert_filter(cls, filter: FilterLike) -> Union[Optional[Filter], str]:
+    @validator("filter", pre=True)
+    def _convert_filter(
+        cls, filter: Optional[Union[FilterLike, "Filter"]]
+    ) -> Union[Optional["Filter"], str]:
         """Converts the filter attribute to a Filter object.
 
         Exceptions:
             ValueError: If the filter type is invalid.
+            ValueError: If the filter tuple length is invalid.
 
         Args:
-            filter (FilterLike): The filter object dict or string.
+            filter (Optional[Union[FilterLike, Filter]]): The filter string or tuple.
 
         Returns:
             Union[Optional[Filter], str]: The Filter object or None or string.
         """
         new_filter: Union[Optional[Filter], str] = None
         if filter is not None:
+            if isinstance(filter, Filter):
+                new_filter = filter
             # If filter is not a string it is a dict
             # Convert filter dict to Filter object
-            if not isinstance(filter, str):
-                if not isinstance(filter, tuple):
+            elif not isinstance(filter, str):
+                if not (isinstance(filter, tuple) or isinstance(filter, list)):
                     raise ValueError(
                         f"""invalid filter type if not string: {type(filter)}
                         should be tuple"""
+                    )
+                if len(filter) != 2:
+                    raise ValueError(
+                        f"""invalid filter tuple length: {len(filter)}
+                        should be 2"""
                     )
                 new_filter = Filter(op=filter[0], args=filter[1])
             else:
@@ -706,14 +801,18 @@ class Search:
                 v["filter_lang"] = "cql2-json"
         return v
 
-    @validator("sort_by")
-    def _convert_sortby(cls, sortby: SortByLike) -> Optional[List["SortBy"]]:
+    @typing.no_type_check  # TODO fix this
+    @validator("sort_by", pre=True)
+    def _convert_sortby(
+        cls, sortby: Optional[Union[SortByLike, "SortBy", List["SortBy"]]]
+    ) -> Optional[List["SortBy"]]:
         """Converts the sortby attribute to a SortBy object.
         If string is provided, it is converted to a list of SortBy object.
         Else if a list is provided, it is converted to a list of SortBy objects.
 
         Args:
-            sortby (SortByLike): list of SortBy objects or string.
+            sortby (Optional[Union[SortByLike, SortBy, List[SortBy]]]):
+                The sortby object dict or string.
         Returns:
             Optional[List[SortBy]]: The list of SortBy objects.
         """
@@ -722,24 +821,61 @@ class Search:
             # Convert sortby string to list of SortBy objects
             if isinstance(sortby, str):
                 new_sortby = SortBy.from_string(sortby)
+            elif isinstance(sortby, SortBy):
+                new_sortby = [sortby]
             else:  # Convert sortby list of dict to list of SortBy objects
                 new_sortby = []
-                sortby = cast(List, sortby)
+                # Maybe it is a sortby tuple
+                try:
+                    new_sortby.append(SortBy(field=sortby[1], direction=sortby[0]))
+                    return new_sortby
+                except Exception as e:
+                    logger.debug(e)
+
                 for i in range(len(sortby)):
                     if isinstance(sortby[i], SortBy):
-                        sortby_item = cast(SortBy, sortby[i])
-                        new_sortby.append(sortby_item)
-                    else:
-                        for field_sortby in sortby[i][1]:
-                            new_sortby.append(
-                                SortBy(field=field_sortby, direction=sortby[i][0])
+                        new_item = cast(SortBy, sortby[i])
+                        new_sortby.append(new_item)
+                    elif isinstance(sortby[i], tuple) or isinstance(sortby[i], list):
+                        if len(sortby[i]) != 2:
+                            raise ValueError("invalid sortby tuple length: should be 2")
+
+                        if isinstance(sortby[i][1], str):
+                            if "," in sortby[i][1]:
+                                for field_sortby in sortby[i][1].split(","):
+                                    new_sortby.append(
+                                        SortBy(
+                                            field=field_sortby, direction=sortby[i][0]
+                                        )
+                                    )
+                            else:
+                                new_sortby.append(
+                                    SortBy(field=sortby[i][1], direction=sortby[i][0])
+                                )
+                        elif isinstance(sortby[i][1], list) or isinstance(
+                            sortby[i][1], tuple
+                        ):
+                            for field_sortby in sortby[i][1]:
+                                new_sortby.append(
+                                    SortBy(field=field_sortby, direction=sortby[i][0])
+                                )
+                        else:
+                            raise ValueError(
+                                f"""invalid sortby field type: {type(sortby[i][1])}
+                                should be str or list or tuple"""
                             )
+                    else:
+                        raise ValueError(
+                            f"""invalid sortby item type: {type(sortby[i])},
+                            should be Sortby or list of SortByLike or list of SortBy"""
+                        )
+
         return new_sortby
 
-    @validator("fields")
+    @validator("fields", pre=True)
     def _convert_fields(
-        cls, fields: FieldsLike
-    ) -> Optional[Tuple[Optional[Field], Optional[Field]]]:
+        cls, fields: Optional[FieldsLike]
+    ) -> Optional[Tuple[Optional["Field"], Optional["Field"]]]:
         """Converts the fields attribute to a Fields object.
         If string is provided, it is converted to a tuple of Fields object.
         Else if a list is provided, it is converted to a list of Fields objects.
@@ -751,32 +887,64 @@ class Search:
             Optional[Tuple[Optional[Field], Optional[Field]]]:
                 The tuple of Fields objects.
         """
-        new_fields: Optional[Tuple[Optional[Field], Optional[Field]]] = None
+        new_fields: Optional[Tuple[Optional["Field"], Optional["Field"]]] = None
         if fields is not None:
             # Convert fields string to tuple of Fields objects
             if isinstance(fields, str):
                 new_fields = Field.from_string(fields)
             # Convert fields list of dict to list of Fields objects
-            elif isinstance(fields, tuple):
-                fields = cast(Tuple[Fields, Fields], fields)
-                field_first_data, field_second_data = fields
-                field_first = Field(
-                    field_type=field_first_data[0], fields=field_first_data[1]
-                )
-                field_second = Field(
-                    field_type=field_second_data[0], fields=field_second_data[1]
-                )
-                if field_first.field_type == "include":
-                    new_fields = (field_first, field_second)
+            elif isinstance(fields, Field):
+                if fields.field_type == "include":
+                    new_fields = (fields, None)
                 else:
-                    new_fields = (field_second, field_first)
-            else:  # Convert filed dict to Field object
-                fields = cast(Fields, fields)
-                field = Field(field_type=fields[0], fields=fields[1])
-                if field.field_type == "include":
-                    new_fields = (field, None)
+                    new_fields = (None, fields)
+            elif isinstance(fields, tuple) or isinstance(fields, list):
+                # Maybe it is a fields tuple
+                try:
+                    field = Field(
+                        field_type=fields[0], fields=fields[1]  # type: ignore
+                    )
+                    if field.field_type == "include":
+                        new_fields = (field, None)
+                    elif field.field_type == "exclude":
+                        new_fields = (None, field)
+                    return new_fields
+                except Exception as e:
+                    logger.debug(e)
+
+                fields_post_process = []
+                if len(fields) != 2:
+                    raise ValueError("invalid fields tuple length: should be 2")
+                for field in fields:  # type: ignore
+                    if isinstance(field, Field):
+                        fields_post_process.append(field)
+                    else:
+                        if not (isinstance(field, tuple) or isinstance(field, list)):
+                            raise ValueError(
+                                f"""invalid field type if not Field type: {type(field)}
+                                should be tuple"""
+                            )
+                        elif len(field) != 2:
+                            raise ValueError("invalid field tuple length: should be 2")
+                        fields_post_process.append(
+                            Field(field_type=field[0], fields=field[1])
+                        )
+                first_preprocess = fields_post_process[0]
+                second_preprocess = fields_post_process[1]
+                if first_preprocess.field_type == second_preprocess.field_type:
+                    raise ValueError(
+                        "invalid fields tuple: both field_type are the same"
+                    )
+                if first_preprocess.field_type == "include":
+                    new_fields = (first_preprocess, second_preprocess)
                 else:
-                    new_fields = (None, field)
+                    new_fields = (second_preprocess, first_preprocess)
+            else:
+                raise ValueError(
+                    f"""invalid fields type: {type(fields)}
+                    should be str or Field or list or tuple"""
+                )
+
         return new_fields
 
     def dict(self) -> Dict[str, Any]:
@@ -825,7 +993,7 @@ class Search:
                 out["fields"] = merge_schemas_dict([fields[0].dict(), fields[1].dict()])
             elif self.fields[0] is not None:
                 out["fields"] = self.fields[0].dict()
-            else:
+            elif self.fields[1] is not None:
                 out["fields"] = self.fields[1].dict()
         if self.limit is not None:
             out["limit"] = self.limit

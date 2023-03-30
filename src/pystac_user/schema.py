@@ -954,6 +954,8 @@ class Search:
             Dict: The dict representation of the search
         """
         out: Dict[str, Any] = {}
+        if self.search_type is not None:
+            out["search_type"] = self.search_type
         if self.bbox is not None:
             out["bbox"] = self.bbox
         if self.intersects is not None:
@@ -990,7 +992,7 @@ class Search:
         if self.fields is not None:
             if self.fields[0] is not None and self.fields[1] is not None:
                 fields = cast(Tuple[Field, Field], self.fields)
-                out["fields"] = merge_schemas_dict([fields[0].dict(), fields[1].dict()])
+                out["fields"] = merge_schemas_dict(fields)  # type: ignore
             elif self.fields[0] is not None:
                 out["fields"] = self.fields[0].dict()
             elif self.fields[1] is not None:
@@ -1006,6 +1008,7 @@ class Search:
             Dict: The dict representation of the search
         """
         search_params = deepcopy(self.dict())
+        del search_params["search_type"]
         if "bbox" in search_params:
             search_params["bbox"] = ",".join(map(str, search_params["bbox"]))
         if "ids" in search_params:
@@ -1016,6 +1019,18 @@ class Search:
             search_params["intersects"] = geojson_dumps(self.intersects)
         if "sortby" in search_params and self.sort_by is not None:
             search_params["sortby"] = ",".join(str(sb) for sb in self.sort_by)
+        if "filter-lang" in search_params:
+            if self.filter is not None and self.filter_lang is not None:
+                if isinstance(self.filter, str):
+                    search_params["filter"] = self.filter
+                else:
+                    logger.warning(
+                        "Get request is not supported for filter of "
+                        "type other than string, filter will be ignored"
+                    )
+                    del search_params["filter"]
+
+            del search_params["filter-lang"]
         if "fields" in search_params and self.fields is not None:
             if self.fields[0] is not None and self.fields[1] is not None:
                 fields = cast(Tuple[Field, Field], self.fields)
@@ -1033,4 +1048,22 @@ class Search:
         Returns:
             Dict: The dict representation of the search
         """
-        return deepcopy(self.dict())
+        out = deepcopy(self.dict())
+        del out["search_type"]
+
+        if "filter" in out and self.filter is not None:
+            if isinstance(self.filter, Filter):
+                filter = cast(Filter, self.filter)
+                out["filter"] = filter.dict()
+                out["filter-lang"] = "cql2-json"
+            else:
+                logger.warning(
+                    "Post request is not supported for filter of "
+                    "type other than Filter, filter will be ignored"
+                )
+                del out["filter"]
+                del out["filter-lang"]
+
+        return out
+
+    # TODO add enum for filter-lan, change geojson to shaply, LIMIT correct

@@ -1452,10 +1452,308 @@ class TestSearch:
         assert "fields" in str(excinfo.value)
 
     def test_to_dict(self):
-        pass
+        search = Search(
+            search_type="api",
+        )
+        assert search is not None
+        assert search.dict() == {"search_type": "api", "limit": DEFAUL_LIMIT}
+
+        search = Search(
+            search_type="api",
+            bbox=[-180, -90, 180, 90],
+            ids=[1, 2, 3],
+            collections=["collection1", "collection2"],
+            query=[
+                Query(property="datetime", operator=[("eq", 2)]),
+                Query(property="bbox", operator=[("eq", 4)]),
+            ],
+            sort_by=[
+                SortBy(field="datetime", direction="asc"),
+                SortBy(field="datetime", direction="desc"),
+            ],
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "bbox" in dict_search
+        dict_search["bbox"] == search.bbox
+        assert "ids" in dict_search
+        dict_search["ids"] == search.ids
+        assert "collections" in dict_search
+        dict_search["collections"] == search.collections
+        assert "query" in dict_search
+        dict_search["query"] == {"datetime": {"eq": 2}, "bbox": {"eq": 4}}
+        assert "sortby" in dict_search
+        dict_search["sortby"] == [
+            {"field": "datetime", "direction": "asc"},
+            {"field": "datetime", "direction": "desc"},
+        ]
+        assert "limit" in dict_search
+        dict_search["limit"] == DEFAUL_LIMIT
+
+        intersect = {
+            "type": "Polygon",
+            "coordinates": [
+                [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]
+            ],
+        }
+        search = Search(search_type="api", intersects=intersect)
+        assert search is not None
+        dict_search = search.dict()
+        assert "intersects" in dict_search
+        dict_search["intersects"] == intersect
+
+        search = Search(
+            search_type="api",
+            datetime=(datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc), None),
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "datetime" in dict_search
+        dict_search["datetime"] == "2018-01-01T00:00:00Z"
+
+        search = Search(
+            search_type="api",
+            datetime=(
+                datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2019, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            ),
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "datetime" in dict_search
+        dict_search["datetime"] == "2018-01-01T00:00:00Z/2019-01-01T00:00:00Z"
+
+        search = Search(
+            search_type="api",
+            filter=Filter(
+                op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+            ),
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "filter-lang" in dict_search
+        dict_search["filter-lang"] == "cql2-json"
+        assert "filter" in dict_search
+        dict_search["filter"] == {
+            "op": "and",
+            "args": [{"op": "=", "args": ["datetime", "2020-01-01"]}],
+        }
+
+        search = Search(
+            search_type="api",
+            filter=(
+                "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+                "AND collection='landsat8_l1tp'"
+            ),
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "filter-lang" in dict_search
+        dict_search["filter-lang"] == "cql2-text"
+        assert "filter" in dict_search
+        dict_search["filter"] == (
+            "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+            "AND collection='landsat8_l1tp'"
+        )
+
+        search = Search(
+            search_type="api", fields=Field(field_type="exclude", fields=["datetime"])
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "fields" in dict_search
+        dict_search["fields"] == {"exclude": ["datetime"]}
+
+        search = Search(
+            search_type="api", fields=Field(field_type="include", fields=["datetime"])
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "fields" in dict_search
+        dict_search["fields"] == {"include": ["datetime"]}
+
+        search = Search(
+            search_type="api",
+            fields=(
+                Field(field_type="include", fields=["bbox"]),
+                Field(field_type="exclude", fields=["datetime"]),
+            ),
+        )
+        assert search is not None
+        dict_search = search.dict()
+        assert "fields" in dict_search
+        dict_search["fields"] == {"include": ["bbox"], "exclude": ["datetime"]}
 
     def test_get_request(self):
-        pass
+        search = Search(
+            search_type="api",
+        )
+        assert search is not None
+        assert search.get_request() == {"limit": DEFAUL_LIMIT}
+
+        search = Search(
+            search_type="api",
+            bbox=[-180, -90, 180, 90],
+            ids=[1, 2, 3],
+            datetime=(
+                datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2019, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            ),
+            collections=["collection1", "collection2"],
+            filter=(
+                "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+                "AND collection='landsat8_l1tp'"
+            ),
+            query=[
+                Query(property="datetime", operator=[("eq", 2)]),
+                Query(property="bbox", operator=[("eq", 4)]),
+            ],
+            sort_by=[
+                SortBy(field="datetime", direction="asc"),
+                SortBy(field="bbox", direction="desc"),
+            ],
+        )
+        assert search is not None
+        get = search.get_request()
+        assert "search_type" not in get
+        assert "bbox" in get
+        get["bbox"] == "-180,-90,180,90"
+        assert "ids" in get
+        get["ids"] == "1,2,3"
+        assert "datetime" in get
+        get["datetime"] == "2018-01-01T00:00:00Z/2019-01-01T00:00:00Z"
+        assert "collections" in get
+        get["collections"] == "collection1,collection2"
+        assert "filter-lang" not in get
+        assert "filter" in get
+        get["filter"] == (
+            "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+            "AND collection='landsat8_l1tp'"
+        )
+        assert "query" in get
+        get["query"] == {"datetime": {"eq": 2}, "bbox": {"eq": 4}}
+        assert "sortby" in get
+        get["sortby"] == "+datetime,-datetime"
+        assert "limit" in get
+        get["limit"] == DEFAUL_LIMIT
+
+        intersect = {
+            "type": "Polygon",
+            "coordinates": [
+                [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]
+            ],
+        }
+        search = Search(search_type="api", intersects=intersect)
+        assert search is not None
+        get = search.get_request()
+        assert "intersects" in get
+        get["intersects"] == intersect
+
+        search = Search(
+            search_type="api", fields=Field(field_type="exclude", fields=["datetime"])
+        )
+        assert search is not None
+        get = search.get_request()
+        assert "fields" in get
+        get["fields"] == "-datetime"
+
+        search = Search(
+            search_type="api", fields=Field(field_type="include", fields=["datetime"])
+        )
+        assert search is not None
+        get = search.get_request()
+        assert "fields" in get
+        get["fields"] == "+datetime"
+
+        search = Search(
+            search_type="api",
+            fields=(
+                Field(field_type="include", fields=["bbox"]),
+                Field(field_type="exclude", fields=["datetime"]),
+            ),
+        )
+        assert search is not None
+        get = search.get_request()
+        assert "fields" in get
+        get["fields"] == "+bbox,-datetime"
+
+        search = Search(
+            search_type="api",
+            filter=Filter(
+                op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+            ),
+        )
+        assert search is not None
+        get = search.get_request()
+        assert "search_type" not in get
+        assert "filter" not in get
+        assert "filter-lang" not in get
 
     def test_post_request(self):
-        pass
+        search = Search(
+            search_type="api",
+            bbox=[-180, -90, 180, 90],
+            datetime=(
+                datetime(2018, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                datetime(2019, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            ),
+            ids=[1, 2, 3],
+            collections=["collection1", "collection2"],
+            query=[
+                Query(property="datetime", operator=[("eq", 2)]),
+                Query(property="bbox", operator=[("eq", 4)]),
+            ],
+            filter=Filter(
+                op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
+            ),
+            sort_by=[
+                SortBy(field="datetime", direction="asc"),
+                SortBy(field="bbox", direction="desc"),
+            ],
+            fields=(
+                Field(field_type="include", fields=["datetime"]),
+                Field(field_type="exclude", fields=["bbox"]),
+            ),
+        )
+        assert search is not None
+        post = search.post_request()
+        assert "search_type" not in post
+        assert "bbox" in post
+        post["bbox"] == [-180, -90, 180, 90]
+        assert "datetime" in post
+        post["datetime"] == "2018-01-01T00:00:00Z/2019-01-01T00:00:00Z"
+        assert "ids" in post
+        post["ids"] == [1, 2, 3]
+        assert "collections" in post
+        post["collections"] == ["collection1", "collection2"]
+        assert "query" in post
+        post["query"] == {"datetime": {"eq": 2}, "bbox": {"eq": 4}}
+        assert "filter-lang" in post
+        post["filter-lang"] == "cql2-json"
+        assert "filter" in post
+        post["filter"] == {
+            "op": "and",
+            "args": [{"op": "=", "args": ["datetime", "2020-01-01"]}],
+        }
+        assert "sortby" in post
+        post["sortby"] == [
+            {"field": "datetime", "direction": "asc"},
+            {"field": "bbox", "direction": "desc"},
+        ]
+        assert "fields" in post
+        post["fields"] == {"include": ["datetime"], "exclude": ["bbox"]}
+        assert "limit" in post
+        post["limit"] == DEFAUL_LIMIT
+
+        search = Search(
+            search_type="api",
+            filter=(
+                "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
+                "AND collection='landsat8_l1tp'"
+            ),
+        )
+        assert search is not None
+        post = search.post_request()
+        assert "search_type" not in post
+        assert "filter" not in post
+        assert "filter-lang" not in post

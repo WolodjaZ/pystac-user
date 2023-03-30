@@ -1,8 +1,17 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type, Union
 
 # Query Parameter Table
 from geojson import GeoJSON
+
+
+class CQL2(Enum):
+    """CQL2 enum for filter_lang"""
+
+    JSON = "cql2-json"
+    TEXT = "cql2-text"
+
 
 # Limit of objects
 Limit = Optional[int]
@@ -15,7 +24,7 @@ BBox = Union[
 # for a range. If string is with `/` it is a range
 Datetimes = Union[str, datetime, Tuple[datetime, Optional[datetime]]]
 # Geometry object that geojson can parse
-Intersects = Type[GeoJSON]
+Intersects = Type["GeoJSON"]
 IntersectsLike = Union[Dict[str, Any], Intersects]
 # List of string ids of items
 Ids = List[str]
@@ -30,7 +39,7 @@ QueryLike = List[Queries]
 Filters = Tuple[str, List[Dict[str, Any]]]
 FilterLike = Union[str, Filters]
 # Filter lang
-FilterLang = Literal["cql2-json", "cql2-text"]
+FilterLang = Literal[CQL2.TEXT, CQL2.JSON]
 # Sort parameters by field and direction
 SortBys = List[Tuple[Literal["asc", "desc"], List[str]]]
 SortByLike = Union[str, SortBys]

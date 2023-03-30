@@ -16,6 +16,7 @@ from pydantic.dataclasses import dataclass
 
 from pystac_user.exceptions import EmptyAttributeError
 from pystac_user.types import (
+    CQL2,
     BBox,
     Collections,
     CollectionsLike,
@@ -36,7 +37,7 @@ from pystac_user.utils import merge_schemas_dict
 
 logger = logging.getLogger("pystac_user")
 
-DEFAUL_LIMIT = 100
+DEFAULT_LIMIT = 100
 _QUERY_OPERATOR: List[str] = [
     "eq",
     "neq",
@@ -360,10 +361,6 @@ class Field:
             cls(field_type="exclude", fields=excludes) if len(excludes) > 0 else None
         )
 
-        # Check if we have at least one field
-        if field_includes is None and field_exclude is None:
-            raise ValueError("No fields provided")
-
         return field_includes, field_exclude
 
 
@@ -456,7 +453,7 @@ class Search:
     filter_lang: Optional[FilterLang] = None
     sort_by: Optional[List["SortBy"]] = None
     fields: Optional[Tuple[Optional["Field"], Optional["Field"]]] = None
-    limit: Limit = DEFAUL_LIMIT
+    limit: Limit = DEFAULT_LIMIT
 
     @staticmethod
     def _to_utc_isoformat(dt: datetime_) -> str:
@@ -494,7 +491,7 @@ class Search:
             if match.group("tz_info"):
                 return datetime_.fromisoformat(component), None
             else:
-                return datetime_.fromisoformat(f"{component}Z+00:00"), None
+                return datetime_.fromisoformat(f"{component}+00:00"), None
         else:
             year = int(match.group("year"))
             optional_month = match.group("month")
@@ -711,7 +708,7 @@ class Search:
         if query is not None:
             new_query = []
             # Convert query List of dict to List of Query objects
-            if isinstance(query, list):
+            if isinstance(query, list) or isinstance(query, tuple):
                 # Maybe it is a query tuple
                 try:
                     new_query.append(
@@ -730,12 +727,6 @@ class Search:
             else:
                 if isinstance(query, Query):
                     new_query.append(query)
-                elif isinstance(query, tuple):
-                    if len(query) != 2:
-                        raise ValueError(
-                            f"""query tuple must be 2 values and is {len(query)}"""
-                        )
-                    new_query.append(Query(property=query[0], operator=query[1]))
                 else:
                     raise ValueError(
                         f"""invalid query type: {type(query)}, should be Query type
@@ -796,9 +787,9 @@ class Search:
         if v.get("filter_lang") is None and v.get("filter") is not None:
             # If filter is string it is cql2-text
             if isinstance(v.get("filter"), str):
-                v["filter_lang"] = "cql2-text"
+                v["filter_lang"] = CQL2.TEXT
             else:  # Otherwise it is cql2-json
-                v["filter_lang"] = "cql2-json"
+                v["filter_lang"] = CQL2.JSON
         return v
 
     @typing.no_type_check  # TODO fix this
@@ -838,7 +829,9 @@ class Search:
                         new_sortby.append(new_item)
                     elif isinstance(sortby[i], tuple) or isinstance(sortby[i], list):
                         if len(sortby[i]) != 2:
-                            raise ValueError("invalid sortby tuple length: should be 2")
+                            raise ValueError(
+                                "invalid sort_by tuple length: should be 2"
+                            )
 
                         if isinstance(sortby[i][1], str):
                             if "," in sortby[i][1]:
@@ -921,8 +914,8 @@ class Search:
                     else:
                         if not (isinstance(field, tuple) or isinstance(field, list)):
                             raise ValueError(
-                                f"""invalid field type if not Field type: {type(field)}
-                                should be tuple"""
+                                f"invalid field type if not Field type: {type(field)} "
+                                "should be tuple"
                             )
                         elif len(field) != 2:
                             raise ValueError("invalid field tuple length: should be 2")
@@ -961,16 +954,14 @@ class Search:
         if self.intersects is not None:
             out["intersects"] = json.loads(geojson_dumps(self.intersects))
         if self.datetime is not None:
-            if self.datetime[0] is None:
-                out["datetime"] = self._to_utc_isoformat(self.datetime[1])
-            elif self.datetime[1] is None:
-                out["datetime"] = self._to_utc_isoformat(self.datetime[0])
-            else:
+            if self.datetime[1] is not None:
                 out["datetime"] = (
                     f"{self._to_utc_isoformat(self.datetime[0])}"
                     "/"
                     f"{self._to_utc_isoformat(self.datetime[1])}"
                 )
+            else:
+                out["datetime"] = self._to_utc_isoformat(self.datetime[0])
 
         if self.ids is not None:
             out["ids"] = self.ids
@@ -1055,7 +1046,7 @@ class Search:
             if isinstance(self.filter, Filter):
                 filter = cast(Filter, self.filter)
                 out["filter"] = filter.dict()
-                out["filter-lang"] = "cql2-json"
+                out["filter-lang"] = CQL2.JSON
             else:
                 logger.warning(
                     "Post request is not supported for filter of "

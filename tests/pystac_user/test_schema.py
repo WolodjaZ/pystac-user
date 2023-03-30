@@ -2,19 +2,20 @@ from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from geojson import GeoJSON
+from geojson import GeoJSON, MultiPoint
 
 from pystac_user.exceptions import EmptyAttributeError
 from pystac_user.schema import (
     _OPERATOR_MAP,
     _QUERY_OPERATOR,
-    DEFAUL_LIMIT,
+    DEFAULT_LIMIT,
     Field,
     Filter,
     Query,
     Search,
     SortBy,
 )
+from pystac_user.types import CQL2
 
 
 class TestQuery:
@@ -574,7 +575,7 @@ class TestSearch:
         assert search.filter_lang is None
         assert search.sort_by is None
         assert search.fields is None
-        assert search.limit == DEFAUL_LIMIT
+        assert search.limit == DEFAULT_LIMIT
 
         with pytest.raises(FrozenInstanceError) as excinfo:
             search.search_type = "static"
@@ -814,6 +815,17 @@ class TestSearch:
             "coordinates": [[-73, 40], [-73.99, 40.734], [-73, 40]],
         }
 
+        search = Search(
+            search_type="api",
+            intersects=MultiPoint([[-73, 40], [-73.99, 40.734], [-73, 40]]),
+        )
+        assert search is not None
+        assert search.intersects is not None
+        assert search.intersects == {
+            "type": "MultiPoint",
+            "coordinates": [[-73, 40], [-73.99, 40.734], [-73, 40]],
+        }
+
         with pytest.raises(ValueError) as excinfo:
             Search(
                 search_type="api",
@@ -1026,6 +1038,14 @@ class TestSearch:
         assert search.datetime[0] == datetime(2019, 1, 1, 0, 0, 0)
         assert search.datetime[1] == datetime(2020, 1, 1, 0, 0, 0)
 
+        range_tuple = datetime(2020, 1, 1)
+        search = Search(search_type="api", datetime=range_tuple)
+        assert search is not None
+        assert search.datetime is not None
+        assert len(search.datetime) == 2
+        assert search.datetime[0] == datetime(2020, 1, 1, 0, 0, 0)
+        assert search.datetime[1] is None
+
         with pytest.raises(ValueError) as excinfo:
             search = Search(search_type="api", datetime="2018.01.01")
 
@@ -1183,6 +1203,9 @@ class TestSearch:
 
         assert "query" in str(excinfo.value)
 
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(search_type="api", query=[("bbox", [("eq", 2, 3)])])
+
     def test_filter(self):
         filter = Filter(
             op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
@@ -1191,7 +1214,7 @@ class TestSearch:
         assert search is not None
         assert search.filter is not None
         assert search.filter_lang is not None
-        assert search.filter_lang == "cql2-json"
+        assert search.filter_lang == CQL2.JSON
         assert search.filter == filter
 
         filter = ("and", [{"op": "=", "args": ["datetime", "2020-01-01"]}])
@@ -1199,7 +1222,7 @@ class TestSearch:
         assert search is not None
         assert search.filter is not None
         assert search.filter_lang is not None
-        assert search.filter_lang == "cql2-json"
+        assert search.filter_lang == CQL2.JSON
         assert search.filter == Filter(
             op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
         )
@@ -1209,7 +1232,7 @@ class TestSearch:
         assert search is not None
         assert search.filter is not None
         assert search.filter_lang is not None
-        assert search.filter_lang == "cql2-json"
+        assert search.filter_lang == CQL2.JSON
         assert search.filter == Filter(
             op="and", args=[{"op": "=", "args": ["datetime", "2020-01-01"]}]
         )
@@ -1222,7 +1245,7 @@ class TestSearch:
         assert search is not None
         assert search.filter is not None
         assert search.filter_lang is not None
-        assert search.filter_lang == "cql2-text"
+        assert search.filter_lang == CQL2.TEXT
         assert search.filter == filter
 
         with pytest.raises(ValueError) as excinfo:
@@ -1275,7 +1298,15 @@ class TestSearch:
             SortBy(field="datetime", direction="asc"),
         ]
 
-        sort = [("asc", "datetime"), ("desc", ["datetime", "datetime"])]
+        sort = [("asc", "datetime"), ("desc", ["datetime", "bbox"])]
+        search = Search(search_type="api", sort_by=sort)
+        assert search is not None
+        assert search.sort_by is not None
+        assert search.sort_by == [
+            SortBy(field="datetime", direction="asc"),
+            SortBy(field="datetime", direction="desc"),
+            SortBy(field="bbox", direction="desc"),
+        ]
 
         sort = "+datetime"
         search = Search(search_type="api", sort_by=sort)
@@ -1314,6 +1345,18 @@ class TestSearch:
 
         with pytest.raises(ValueError) as excinfo:
             search = Search(search_type="api", sort_by=[("asc", {"datetime": "asc"})])
+
+        assert "sort_by" in str(excinfo.value)
+
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                sort_by=[
+                    ("asc", {"datetime": "asc"}),
+                    ("asc", {"datetime": "asc"}),
+                    ("asc", {"datetime": "asc"}),
+                ],
+            )
 
         assert "sort_by" in str(excinfo.value)
 
@@ -1451,12 +1494,23 @@ class TestSearch:
 
         assert "fields" in str(excinfo.value)
 
+        with pytest.raises(ValueError) as excinfo:
+            search = Search(
+                search_type="api",
+                fields=[
+                    Field(field_type="exclude", fields=["datetime"]),
+                    1,
+                ],
+            )
+
+        assert "fields" in str(excinfo.value)
+
     def test_to_dict(self):
         search = Search(
             search_type="api",
         )
         assert search is not None
-        assert search.dict() == {"search_type": "api", "limit": DEFAUL_LIMIT}
+        assert search.dict() == {"search_type": "api", "limit": DEFAULT_LIMIT}
 
         search = Search(
             search_type="api",
@@ -1488,7 +1542,7 @@ class TestSearch:
             {"field": "datetime", "direction": "desc"},
         ]
         assert "limit" in dict_search
-        dict_search["limit"] == DEFAUL_LIMIT
+        dict_search["limit"] == DEFAULT_LIMIT
 
         intersect = {
             "type": "Polygon",
@@ -1532,7 +1586,7 @@ class TestSearch:
         assert search is not None
         dict_search = search.dict()
         assert "filter-lang" in dict_search
-        dict_search["filter-lang"] == "cql2-json"
+        dict_search["filter-lang"] == CQL2.JSON
         assert "filter" in dict_search
         dict_search["filter"] == {
             "op": "and",
@@ -1549,7 +1603,7 @@ class TestSearch:
         assert search is not None
         dict_search = search.dict()
         assert "filter-lang" in dict_search
-        dict_search["filter-lang"] == "cql2-text"
+        dict_search["filter-lang"] == CQL2.TEXT
         assert "filter" in dict_search
         dict_search["filter"] == (
             "filter=id='LC08_L1TP_060247_20180905_20180912_01_T1_L1TP'"
@@ -1589,7 +1643,7 @@ class TestSearch:
             search_type="api",
         )
         assert search is not None
-        assert search.get_request() == {"limit": DEFAUL_LIMIT}
+        assert search.get_request() == {"limit": DEFAULT_LIMIT}
 
         search = Search(
             search_type="api",
@@ -1635,7 +1689,7 @@ class TestSearch:
         assert "sortby" in get
         get["sortby"] == "+datetime,-datetime"
         assert "limit" in get
-        get["limit"] == DEFAUL_LIMIT
+        get["limit"] == DEFAULT_LIMIT
 
         intersect = {
             "type": "Polygon",
@@ -1729,7 +1783,7 @@ class TestSearch:
         assert "query" in post
         post["query"] == {"datetime": {"eq": 2}, "bbox": {"eq": 4}}
         assert "filter-lang" in post
-        post["filter-lang"] == "cql2-json"
+        post["filter-lang"] == CQL2.JSON
         assert "filter" in post
         post["filter"] == {
             "op": "and",
@@ -1743,7 +1797,7 @@ class TestSearch:
         assert "fields" in post
         post["fields"] == {"include": ["datetime"], "exclude": ["bbox"]}
         assert "limit" in post
-        post["limit"] == DEFAUL_LIMIT
+        post["limit"] == DEFAULT_LIMIT
 
         search = Search(
             search_type="api",

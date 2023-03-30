@@ -75,7 +75,7 @@ class TestStaticIO:
 
     @pytest.mark.vcr()
     @pytest.mark.parametrize(
-        ("headers", "params"), [(None, None), ({"User-Agent": "Mozilla/5.0"}, None)]
+        ("headers", "params"), [({}, {}), ({"User-Agent": "Mozilla/5.0"}, None)]
     )
     def test_read_text_from_href_url_GET(
         self,

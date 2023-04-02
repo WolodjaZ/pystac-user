@@ -16,21 +16,22 @@ class DefaultStacIO(StacIO):
     instead of `os.path` and with `requests` instead of `urllib.request`.
 
     Args:
-        headers (Optional[Dict[str, str]], optional):
+        headers (Dict[str, str]):
             A dictionary of additional headers to use in all requests.
-            Defaults to None.
-        params (Optional[Dict[str, str]], optional):
+            Defaults to empty dict {}.
+        params (Dict[str, str]):
             A dictionary of additional parameters to use in all requests.
-            Defaults to None.
+            Defaults to empty dict {}.
     """
 
     def __init__(
         self,
-        headers: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, str]] = None,
+        headers: Dict[str, str] = {},
+        params: Dict[str, str] = {},
     ) -> None:
-        self.headers = headers or None
-        self.params = params or None
+        super().__init__()
+        self.headers = headers
+        self.params = params
 
     def read_text(self, source: link.HREF, *args: Any, **kwargs: Any) -> str:
         """
@@ -124,12 +125,12 @@ class DefaultStacIO(StacIO):
         else:
             # Read remote file
             # Update headers and params
-            headers = kwargs.get("headers", None)
-            params = kwargs.get("params", None)
-            if headers is None:
+            headers = kwargs.get("headers", {})
+            params = kwargs.get("params", {})
+            if headers is None or len(headers) == 0:
                 headers = self.headers
-            if params is None:
-                params = self.headers
+            if params is None or len(params) == 0:
+                params = self.params
 
             # Get method
             method = kwargs.get("method", "GET")
@@ -260,21 +261,22 @@ class AsyncStacIO(StacIO):
     It's similar to `DefaultStacIO` but with use of `asyncio` and `aiohttp`.
 
     Args:
-        headers (Optional[Dict[str, str]], optional):
+        headers (Dict[str, str]):
             A dictionary of additional headers to use in all requests.
-            Defaults to None.
-        params (Optional[Dict[str, str]], optional):
+            Defaults to empty dict {}.
+        params (Dict[str, str]):
             A dictionary of additional query parameters to use in all requests.
-            Defaults to None.
+            Defaults to empty dict {}.
     """
 
     def __init__(
         self,
-        headers: Optional[Dict[str, str]] = None,
-        params: Optional[Dict[str, str]] = None,
+        headers: Dict[str, str] = {},
+        params: Dict[str, str] = {},
     ) -> None:
-        self.headers = headers or None
-        self.params = params or None
+        super().__init__()
+        self.headers = headers
+        self.params = params
 
     async def read_text(  # type: ignore[override]
         self, source: link.HREF, *args: Any, **kwargs: Any
@@ -373,11 +375,11 @@ class AsyncStacIO(StacIO):
         else:
             # Read remote file
             # Update headers and params
-            headers = kwargs.get("headers", None)
-            params = kwargs.get("params", None)
-            if headers is None:
+            headers = kwargs.get("headers", {})
+            params = kwargs.get("params", {})
+            if headers is None or len(headers) == 0:
                 headers = self.headers
-            if params is None:
+            if params is None or len(params) == 0:
                 params = self.params
 
             # Get method

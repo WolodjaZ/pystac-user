@@ -15,6 +15,8 @@ dependencies = [
     "aiohttp>=3.8.4",
     "asyncio>=3.4.3",
     "aiofiles>=23.1.0",
+    "geojson>=2.5.0",
+    "pydantic>=1.10.6",
 ]
 requires-python = ">=3.8"
 readme = "README.md"
@@ -39,7 +41,6 @@ clean = {shell = """find . -type f -name '*.DS_Store' -ls -delete &&
     find . | grep -E '.pytest_cache' | xargs rm -rf &&
     find . | grep -E '.ipynb_checkpoints' | xargs rm -rf &&
     find . | grep -E '.trash' | xargs rm -rf &&
-    find . | grep -E '.coverage' | xargs rm -rf &&
     find . | grep -E '.mypy_cache' | xargs rm -rf &&
     find . -type f -name '*.py[co]' -delete &&
     find . -type d -name '__pycache__' -delete &&
@@ -75,7 +76,7 @@ test = [
     "pytest>=7.2.1",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
-    "coverage>=7.2.0",
+    "coverage>=7.2.2",
     "pytest-asyncio>=0.20.3",
     "pytest-recording>=0.12.2",
 ]
